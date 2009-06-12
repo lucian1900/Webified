@@ -19,7 +19,7 @@ def change_info(path, name, bundle_id):
     config.read(path)
 
     if config.get('Activity', 'name') == 'Browse':
-        version = 0
+        version = 1
     else:
         version = config.get('Activity', 'version') + 1
 

@@ -425,5 +425,5 @@ class WebToolbar(gtk.Toolbar):
         else:
             title = first
 
-        xo_path = createssb.create(title)
+        createssb.create(title)
 
