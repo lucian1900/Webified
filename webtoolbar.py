@@ -407,6 +407,7 @@ class WebToolbar(gtk.Toolbar):
         self.emit('add-link')
 
     def _create_ssb_clicked_cb(self, button):
+        # TODO: better handle the name
         title = self._activity.webtitle
 
         pattern = re.compile(r'''
@@ -419,11 +420,8 @@ class WebToolbar(gtk.Toolbar):
 
         # CamelCase the two words
         first = first.capitalize()
-        if second is not None:
-            second = second.capitalize()
-            title = first + second
-        else:
-            title = first
+        second = second.capitalize()
+        title = first + second if second is not None else first
 
         xo_path = createssb.create(title)
 

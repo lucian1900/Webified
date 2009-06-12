@@ -10,6 +10,7 @@ import os
 import tempfile
 import zipfile
 
+
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
 
 def create_manifest(path):
@@ -42,8 +43,9 @@ def change_info(path, name, bundle_id):
 def create(name):
     # set up the needed paths
     bundle_path = activity.get_bundle_path()
+    #bundle_path = '/home/lucian/sugar-jhbuild/install/share/sugar/activities/Browse.activity' # for testing outside sugar
     temp_path = tempfile.mkdtemp() # make sure there's no collisions
-    ssb_path = os.path.join(temp_path, name + '.activity')
+    ssb_path = os.path.join(temp_path, '%s.activity' % name)
 
     # copy the entire bundle
     shutil.copytree(bundle_path, ssb_path)
@@ -53,7 +55,7 @@ def create(name):
     change_info(path=info_path, name=name, 
                 bundle_id='%s.%sActivity' % (DOMAIN_PREFIX, name)})
     
-    # HACK: just delete the locale, it's only needed for the activity name
+    # just delete the locale, it's only needed for the activity name
     shutil.rmtree(os.path.join(ssb_path,'locale'))
 
     create_manifest(ssb_path)
@@ -67,14 +69,14 @@ def create(name):
     xo = zipfile.ZipFile(xo_path, 'w', zipfile.ZIP_DEFLATED)
     for i in files:
         xo.write(os.path.join(ssb_path, i), 
-                 os.path.join( name + '.activity', i))
+                 os.path.join('%s.activity' % name, i))
     xo.close()
     
     # copy the .xo to ~, just for debugging
     # TODO install the .xo
     shutil.copy(xo_path, os.path.expanduser('~'))
 
-    # clean up tmp dir
+    # clean up
     shutil.rmtree(temp_path)
 
     # let Browse handle the .xo
