@@ -1,0 +1,5 @@
+[replace]
+Browse = activity/activity.info locale/*/activity.linfo
+WebActivity activity/activity.info
+
+[exclude]
