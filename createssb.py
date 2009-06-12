@@ -12,6 +12,15 @@ import zipfile
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
 
+def create_manifest(path):
+    files = bb.list_files(path, ignore_dirs=bb.IGNORE_DIRS, 
+                          ignore_files=bb.IGNORE_FILES)
+                          
+    f = open(os.path.join(path, 'MANIFEST'), 'w')
+    for i in files:
+        f.write(i+'\n')
+    f.close()
+                          
 def change_info(path, name, bundle_id):
     config = ConfigParser()
     config.read(path)
@@ -47,14 +56,7 @@ def create(name):
     # HACK: just delete the locale, it's only needed for the activity name
     shutil.rmtree(os.path.join(ssb_path,'locale'))
 
-    # create MANIFEST
-    files = bb.list_files(ssb_path, ignore_dirs=bb.IGNORE_DIRS, 
-                       ignore_files=bb.IGNORE_FILES)
-
-    f = open(os.path.join(ssb_path, 'MANIFEST'), 'w')
-    for i in files:
-        f.write(i+'\n')
-    f.close()
+    create_manifest(ssb_path)
 
     # create .xo
     # include the manifest
