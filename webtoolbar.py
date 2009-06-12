@@ -425,5 +425,10 @@ class WebToolbar(gtk.Toolbar):
         else:
             title = first
 
-        createssb.create(title)
+        try:
+            createssb.create(title)
+        except: # should catch re-thrown exceptions from create
+            print 'something went wrong'
+        else:
+            pass
 
