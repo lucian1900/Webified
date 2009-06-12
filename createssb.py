@@ -2,6 +2,7 @@
 
 from sugar.activity import activity
 from sugar.activity import bundlebuilder as bb
+from sugar.bundle.activitybundle import ActivityBundle
 # how about sugar.util.list_files ?
 
 from ConfigParser import ConfigParser
@@ -9,6 +10,7 @@ import shutil
 import os
 import tempfile
 import zipfile
+
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
 
@@ -68,15 +70,12 @@ def create(name):
                  os.path.join( name + '.activity', i))
     xo.close()
     
-    # copy the .xo to ~, just for debugging
-    # TODO install the .xo
-    shutil.copy(xo_path, os.path.expanduser('~'))
+    # install the xo
+    bundle = ActivityBundle(xo_path)
+    bundle.install()
 
     # clean up tmp dir
     shutil.rmtree(temp_path)
-
-    # let Browse handle the .xo
-    return xo_path
 
 if __name__ == '__main__':
     create('Test')
