@@ -44,10 +44,10 @@ def create(name):
     # change activity.info accordingly
     info_path = os.path.join(ssb_path, 'activity/activity.info')
     change_info(path=info_path, name=name, 
-                bundle_id='%s.%sActivity' % (DOMAIN_PREFIX, name)})
+                bundle_id='%s.%sActivity' % (DOMAIN_PREFIX, name))
     
     # HACK: just delete the locale, it's only needed for the activity name
-    shutil.rmtree(os.path.join(ssb_path,'locale'))
+    #shutil.rmtree(os.path.join(ssb_path,'locale'))
 
     # create MANIFEST
     files = bb.list_files(ssb_path, ignore_dirs=bb.IGNORE_DIRS, 
