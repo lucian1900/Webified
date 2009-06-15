@@ -32,7 +32,9 @@ def change_info(path, name, bundle_id):
     config.write(f)
     f.close()
 
-def create(name):
+def create(title, uri):
+    name = title.replace(' ', '')
+
     # set up the needed paths
     bundle_path = activity.get_bundle_path()
     temp_path = tempfile.mkdtemp() # make sure there's no collisions
@@ -43,7 +45,7 @@ def create(name):
 
     # change activity.info accordingly
     info_path = os.path.join(ssb_path, 'activity/activity.info')
-    change_info(path=info_path, name=name, 
+    change_info(path=info_path, name=title, 
                 bundle_id='%s.%sActivity' % (DOMAIN_PREFIX, name))
     
     # HACK: just delete the locale, it's only needed for the activity name
@@ -56,6 +58,11 @@ def create(name):
     f = open(os.path.join(ssb_path, 'MANIFEST'), 'w')
     for i in files:
         f.write(i+'\n')
+    f.close()
+
+    # set homepage
+    f = open(os.path.join(ssb_path, 'data/homepage'), 'w')
+    f.write(uri)
     f.close()
 
     # create .xo

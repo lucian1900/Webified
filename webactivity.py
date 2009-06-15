@@ -30,6 +30,7 @@ import shutil
 import sqlite3
 import cjson
 import gconf
+from ConfigParser import ConfigParser
 
 # HACK: Needed by http://dev.sugarlabs.org/ticket/456
 import gnome
@@ -168,9 +169,20 @@ from sugar.presence.tubeconn import TubeConnection
 from messenger import Messenger
 from linkbutton import LinkButton
 
-SERVICE = "org.laptop.WebActivity"
+# check if we're an SSB
+config = ConfigParser()
+config.read(os.path.join(activity.get_bundle_path(),
+            'activity/activity.info'))
+bundle_id =  config.get('Activity', 'bundle_id')
+
+if bundle_id.startswith('org.sugarlabs.ssb'):
+    IS_SSB = True
+else:
+    IS_SSB = False
+
+SERVICE = bundle_id
 IFACE = SERVICE
-PATH = "/org/laptop/WebActivity"
+PATH = '/' + bundle_id.replace('/', ' ')
 
 _TOOLBAR_EDIT = 1
 _TOOLBAR_BROWSE = 2
@@ -212,9 +224,10 @@ class WebActivity(activity.Activity):
         toolbox.add_toolbar(_('View'), self._view_toolbar)
         self._view_toolbar.show()
 
-        self._ssb_toolbar = SSBToolbar(self)
-        toolbox.add_toolbar(_('Customize'), self._ssb_toolbar)
-        self._ssb_toolbar.show()
+        if IS_SSB:
+            self._ssb_toolbar = SSBToolbar(self)
+            toolbox.add_toolbar(_('Customize'), self._ssb_toolbar)
+            self._ssb_toolbar.show()
 
         self.set_toolbox(toolbox)
         toolbox.show()
@@ -243,6 +256,12 @@ class WebActivity(activity.Activity):
             # TODO: we need this hack until we extend the activity API for
             # opening URIs and default docs.
             self._load_homepage()
+
+        if IS_SSB:
+            f = open(os.path.join(activity.get_bundle_path(),
+                                  'data/homepage'))
+            self.homepage = f.read()
+            f.close()
 
         self.messenger = None
         self.connect('shared', self._shared_cb)
@@ -371,6 +390,8 @@ class WebActivity(activity.Activity):
     def _load_homepage(self):
         if os.path.isfile(_LIBRARY_PATH):
             self._browser.load_uri('file://' + _LIBRARY_PATH)
+        elif IS_SSB:
+            self._browser.load_uri(self.homepage)
         else:
             default_page = os.path.join(activity.get_bundle_path(), 
                                         "data/index.html")

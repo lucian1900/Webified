@@ -408,6 +408,7 @@ class WebToolbar(gtk.Toolbar):
 
     def _create_ssb_clicked_cb(self, button):
         title = self._activity.webtitle
+        uri = self._activity.current
 
         pattern = re.compile(r'''
                       (\w+)  # first word
@@ -420,22 +421,21 @@ class WebToolbar(gtk.Toolbar):
         first = first.capitalize()
         if second is not None:
             second = second.capitalize()
-            title = first + second
+            name = '%s %s' % (first, second)
         else:
-            title = first
+            name = first
 
         alert = NotifyAlert()
         alert.props.title = _('SSB Creation')
 
         try:
-            createssb.create(title)
-        except: # should catch re-thrown exceptions from create
-            print 'something went wrong'
-            alert.props.msg = _('Creating the SSB failed!')
+            createssb.create(name, uri)
+        except Exception, e: 
+            # DEBUG: alert shows exception message
+            alert.props.msg = _('Failed: ') + str(e)
         else:
-
-            alert.props.msg = _('SSB created. Try it!')
-
+            alert.props.msg = _('Done! You can start it from Home View')
+ 
         alert.connect('response', self._create_ssb_alert_response_cb)
         self._activity.add_alert(alert)
         
