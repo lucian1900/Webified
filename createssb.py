@@ -71,6 +71,7 @@ def create(name):
     xo.close()
     
     # install the xo
+    # TODO offer 'download' link for the .xo
     bundle = ActivityBundle(xo_path)
     bundle.install()
 

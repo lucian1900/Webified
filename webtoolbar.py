@@ -26,7 +26,7 @@ from xpcom import components
 
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.menuitem import MenuItem
-from sugar.graphics.alert import Alert
+from sugar.graphics.alert import NotifyAlert
 from sugar._sugarext import AddressEntry
 
 import filepicker
@@ -414,7 +414,6 @@ class WebToolbar(gtk.Toolbar):
                       [ _-]* # any amount and type of spacing
                       (\w+)? # second word, may not be present
                   ''', re.VERBOSE)
-
         first, second = re.search(pattern, title).groups()
 
         # CamelCase the two words
@@ -425,10 +424,21 @@ class WebToolbar(gtk.Toolbar):
         else:
             title = first
 
+        alert = NotifyAlert()
+        alert.props.title = _('SSB Creation')
+
         try:
             createssb.create(title)
         except: # should catch re-thrown exceptions from create
             print 'something went wrong'
+            alert.props.msg = _('Creating the SSB failed!')
         else:
-            pass
+
+            alert.props.msg = _('SSB created. Try it!')
+
+        alert.connect('response', self._create_ssb_alert_response_cb)
+        self._activity.add_alert(alert)
+        
+    def _create_ssb_alert_response_cb(self, alert, response_id):
+        self._activity.remove_alert(alert)
 
