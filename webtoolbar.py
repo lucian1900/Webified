@@ -24,6 +24,7 @@ import pango
 from xpcom.components import interfaces
 from xpcom import components
 
+from sugar.datastore import datastore
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.menuitem import MenuItem
 from sugar.graphics.alert import NotifyAlert
@@ -413,7 +414,7 @@ class WebToolbar(gtk.Toolbar):
         pattern = re.compile(r'''
                       (\w+)  # first word
                       [ _-]* # any amount and type of spacing
-                      (\w+)? # second word, may not be present
+                      (\w+)? # second word, may be absent
                   ''', re.VERBOSE)
         first, second = re.search(pattern, title).groups()
 
@@ -421,7 +422,7 @@ class WebToolbar(gtk.Toolbar):
         first = first.capitalize()
         if second is not None:
             second = second.capitalize()
-            name = '%s %s' % (first, second)
+            name = first + ' ' + second
         else:
             name = first
 
@@ -430,14 +431,21 @@ class WebToolbar(gtk.Toolbar):
 
         try:
             createssb.create(name, uri)
-        except Exception, e: 
+        except Exception, e:
             # DEBUG: alert shows exception message
             alert.props.msg = _('Failed: ') + str(e)
         else:
-            alert.props.msg = _('Done! You can start it from Home View')
+            alert.props.msg = _('Done! You can start it from Home View.')
  
         alert.connect('response', self._create_ssb_alert_response_cb)
         self._activity.add_alert(alert)
+
+        # TODO: investigate sending the .xo to the journal
+        #jobject = datastore.create()
+        #jobject.metadata['title'] = title
+        #jobject.metadata['mime_type'] = 'application/vnd.olpc-sugar'
+        #jobject.file_path = path
+        #datastore.write(jobject)
         
     def _create_ssb_alert_response_cb(self, alert, response_id):
         self._activity.remove_alert(alert)

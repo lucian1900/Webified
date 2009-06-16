@@ -1,5 +1,3 @@
-#!/usr/bin/env python
-
 from sugar.activity import activity
 from sugar.activity import bundlebuilder as bb
 from sugar.bundle.activitybundle import ActivityBundle
@@ -48,6 +46,11 @@ def create(title, uri):
     change_info(path=info_path, name=title, 
                 bundle_id='%s.%sActivity' % (DOMAIN_PREFIX, name))
     
+    # set homepage
+    f = open(os.path.join(ssb_path, 'data/homepage'), 'w')
+    f.write(uri)
+    f.close()
+
     # HACK: just delete the locale, it's only needed for the activity name
     #shutil.rmtree(os.path.join(ssb_path,'locale'))
 
@@ -58,11 +61,6 @@ def create(title, uri):
     f = open(os.path.join(ssb_path, 'MANIFEST'), 'w')
     for i in files:
         f.write(i+'\n')
-    f.close()
-
-    # set homepage
-    f = open(os.path.join(ssb_path, 'data/homepage'), 'w')
-    f.write(uri)
     f.close()
 
     # create .xo
@@ -78,12 +76,9 @@ def create(title, uri):
     xo.close()
     
     # install the xo
-    # TODO offer 'download' link for the .xo
+    # TODO investigate offering 'download' link for the .xo
     bundle = ActivityBundle(xo_path)
     bundle.install()
 
     # clean up tmp dir
     shutil.rmtree(temp_path)
-
-if __name__ == '__main__':
-    create('Test')

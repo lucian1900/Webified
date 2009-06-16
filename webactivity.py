@@ -182,7 +182,7 @@ else:
 
 SERVICE = bundle_id
 IFACE = SERVICE
-PATH = '/' + bundle_id.replace('/', ' ')
+PATH = '/' + bundle_id.replace('.', '/')
 
 _TOOLBAR_EDIT = 1
 _TOOLBAR_BROWSE = 2
@@ -234,7 +234,7 @@ class WebActivity(activity.Activity):
 
         self.set_canvas(self._browser)
         self._browser.show()
-                 
+
         self._browser.history.connect('session-link-changed', 
                                       self._session_history_changed_cb)
         self._web_toolbar.connect('add-link', self._link_add_button_cb)
@@ -250,18 +250,18 @@ class WebActivity(activity.Activity):
                      
         self.toolbox.set_current_toolbar(_TOOLBAR_BROWSE)
         
+        if IS_SSB:
+            f = open(os.path.join(activity.get_bundle_path(),
+                                  'data/homepage'))
+            self.homepage = f.read()
+            f.close()
+
         if handle.uri:
             self._browser.load_uri(handle.uri)        
         elif not self._jobject.file_path:
             # TODO: we need this hack until we extend the activity API for
             # opening URIs and default docs.
             self._load_homepage()
-
-        if IS_SSB:
-            f = open(os.path.join(activity.get_bundle_path(),
-                                  'data/homepage'))
-            self.homepage = f.read()
-            f.close()
 
         self.messenger = None
         self.connect('shared', self._shared_cb)
