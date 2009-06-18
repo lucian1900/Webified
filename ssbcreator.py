@@ -8,16 +8,14 @@ import shutil
 import os
 import tempfile
 import zipfile
-
-DOMAIN_PREFIX = 'org.sugarlabs.ssb'
     
 class SSBCreator(object):
-    def __init__(self, title, uri):
+    def __init__(self, title, uri, domain_prefix='org.sugarlabs.ssb'):
         self.title = title
         self.name = title.replace(' ', '')
         self.uri = uri
         
-        self.bundle_id = '%s.%sActivity' % (DOMAIN_PREFIX, name)
+        self.bundle_id = '%s.%sActivity' % (domain_prefix, name)
         
         self.setup()
         
@@ -65,9 +63,9 @@ class SSBCreator(object):
 
         # create MANIFEST
         files = bb.list_files(self.ssb_path, ignore_dirs=bb.IGNORE_DIRS, 
-                           ignore_files=bb.IGNORE_FILES)
+                              ignore_files=bb.IGNORE_FILES)
 
-        f = open(os.path.join(ssb_path, 'MANIFEST'), 'w')
+        f = open(os.path.join(self.ssb_path, 'MANIFEST'), 'w')
         for i in files:
             f.write(i+'\n')
         f.close()
@@ -78,10 +76,11 @@ class SSBCreator(object):
 
         self.xo_path = os.path.join(self.temp_path, name.lower() + '.xo')
 
+        # zip everything
         xo = zipfile.ZipFile(self.xo_path, 'w', zipfile.ZIP_DEFLATED)
         for i in files:
-            xo.write(os.path.join(ssb_path, i), 
-                     os.path.join( name + '.activity', i))
+            xo.write(os.path.join(self.ssb_path, i), 
+                     os.path.join(self.name + '.activity', i))
         xo.close()
 
     def install(self):

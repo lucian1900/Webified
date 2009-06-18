@@ -426,24 +426,26 @@ class WebToolbar(gtk.Toolbar):
         else:
             name = first
 
-        creator = ssbcreator.SSBCreator(name, uri)
+        ssb = ssbcreator.SSBCreator(name, uri)
 
         alert = NotifyAlert()
         alert.props.title = _('SSB Creation')
 
         try:
-            creator.create()
+            ssb.create()
         except Exception, e:
             # DEBUG: alert shows exception message
             alert.props.msg = _('Failed: ') + str(e)
         else:
             alert.props.msg = _('Done! You can start it from Home View.')
  
+        ssb.install()
+        
         alert.connect('response', self._create_ssb_alert_response_cb)
         self._activity.add_alert(alert)
 
         # make sure temporary files get deleted
-        del creator
+        del ssb
         
         # TODO: investigate sending the .xo to the journal
         #jobject = datastore.create()
