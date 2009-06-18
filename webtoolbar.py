@@ -426,11 +426,13 @@ class WebToolbar(gtk.Toolbar):
         else:
             name = first
 
+        creator = createssb.Creator(name, uri)
+
         alert = NotifyAlert()
         alert.props.title = _('SSB Creation')
 
         try:
-            createssb.create(name, uri)
+            createssb.create()
         except Exception, e:
             # DEBUG: alert shows exception message
             alert.props.msg = _('Failed: ') + str(e)
@@ -440,6 +442,9 @@ class WebToolbar(gtk.Toolbar):
         alert.connect('response', self._create_ssb_alert_response_cb)
         self._activity.add_alert(alert)
 
+        # make sure temporary files get deleted
+        del creator
+        
         # TODO: investigate sending the .xo to the journal
         #jobject = datastore.create()
         #jobject.metadata['title'] = title
@@ -449,4 +454,3 @@ class WebToolbar(gtk.Toolbar):
         
     def _create_ssb_alert_response_cb(self, alert, response_id):
         self._activity.remove_alert(alert)
-

@@ -9,76 +9,83 @@ import os
 import tempfile
 import zipfile
 
-
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
-
-def change_info(path, name, bundle_id):
-    config = ConfigParser()
-    config.read(path)
-
-    if config.get('Activity', 'name') == 'Browse':
-        version = 1
-    else:
-        version = int(config.get('Activity', 'activity_version')) + 1
-
-    config.set('Activity', 'activity_version', version)    
-    config.set('Activity', 'name', name)
-    config.set('Activity', 'bundle_id', bundle_id)
-
-    # 'commit' the changes
-    f = open(path, 'w')
-    config.write(f)
-    f.close()
-
-def create(title, uri):
-    name = title.replace(' ', '')
-
-    # set up the needed paths
-    bundle_path = activity.get_bundle_path()
-    temp_path = tempfile.mkdtemp() # make sure there's no collisions
-    ssb_path = os.path.join(temp_path, name + '.activity')
-
-    # copy the entire bundle
-    shutil.copytree(bundle_path, ssb_path)
-
-    # change activity.info accordingly
-    info_path = os.path.join(ssb_path, 'activity/activity.info')
-    change_info(path=info_path, name=title, 
-                bundle_id='%s.%sActivity' % (DOMAIN_PREFIX, name))
     
-    # set homepage
-    f = open(os.path.join(ssb_path, 'data/homepage'), 'w')
-    f.write(uri)
-    f.close()
+class SSBCreator(object):
+    def __init__(self, title, uri):
+        self.title = title
+        self.name = title.replace(' ', '')
+        self.uri = uri
+        
+        self.bundle_id = '%s.%sActivity' % (DOMAIN_PREFIX, name)
+        
+        self.setup()
+        
+    def __del__(self):
+        '''clean up after ourselves'''
+        shutil.rmtree(temp_path)
+        
+    def setup(self):
+        '''create tmp dir, setup paths, copy activity files'''
+        self.bundle_path = activity.get_bundle_path()
+        self.temp_path = tempfile.mkdtemp() # make sure there's no collisions
+        self.ssb_path = os.path.join(temp_path, self.name + '.activity')
+        
+        # copy the entire bundle
+        shutil.copytree(self.bundle_path, self.ssb_path)
+        
+    def change_info(self):
+        '''change the .info file accordingly'''
+        path = os.path.join(self.ssb_path, 'activity/activity.info')
+        
+        config = ConfigParser()
+        config.read(path)
 
-    # HACK: just delete the locale, it's only needed for the activity name
-    #shutil.rmtree(os.path.join(ssb_path,'locale'))
+        if config.get('Activity', 'name') == 'Browse':
+            version = 1
+        else:
+            version = int(config.get('Activity', 'activity_version')) + 1
 
-    # create MANIFEST
-    files = bb.list_files(ssb_path, ignore_dirs=bb.IGNORE_DIRS, 
-                       ignore_files=bb.IGNORE_FILES)
+        config.set('Activity', 'activity_version', version)    
+        config.set('Activity', 'name', self.title)
+        config.set('Activity', 'bundle_id', self.bundle_id)
 
-    f = open(os.path.join(ssb_path, 'MANIFEST'), 'w')
-    for i in files:
-        f.write(i+'\n')
-    f.close()
+        # 'commit' the changes
+        f = open(path, 'w')
+        config.write(f)
+        f.close()
+        
+    def create(self):
+        self.change_info()
+        
+        # set homepage
+        f = open(os.path.join(self.ssb_path, 'data/homepage'), 'w')
+        f.write(self.uri)
+        f.close()
 
-    # create .xo
-    # include the manifest
-    files.append('MANIFEST')
+        # create MANIFEST
+        files = bb.list_files(self.ssb_path, ignore_dirs=bb.IGNORE_DIRS, 
+                           ignore_files=bb.IGNORE_FILES)
 
-    xo_path = os.path.join(temp_path, name.lower() + '.xo')
+        f = open(os.path.join(ssb_path, 'MANIFEST'), 'w')
+        for i in files:
+            f.write(i+'\n')
+        f.close()
 
-    xo = zipfile.ZipFile(xo_path, 'w', zipfile.ZIP_DEFLATED)
-    for i in files:
-        xo.write(os.path.join(ssb_path, i), 
-                 os.path.join( name + '.activity', i))
-    xo.close()
-    
-    # install the xo
-    # TODO investigate offering 'download' link for the .xo
-    bundle = ActivityBundle(xo_path)
-    bundle.install()
+        # create .xo
+        # include the manifest
+        files.append('MANIFEST')
 
-    # clean up tmp dir
-    shutil.rmtree(temp_path)
+        self.xo_path = os.path.join(self.temp_path, name.lower() + '.xo')
+
+        xo = zipfile.ZipFile(self.xo_path, 'w', zipfile.ZIP_DEFLATED)
+        for i in files:
+            xo.write(os.path.join(ssb_path, i), 
+                     os.path.join( name + '.activity', i))
+        xo.close()
+
+    def install(self):
+        '''install the generated .xo bundle'''
+        # TODO investigate offering 'download' link for the .xo
+        bundle = ActivityBundle(self.xo_path)
+        bundle.install()
