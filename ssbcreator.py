@@ -15,7 +15,7 @@ class SSBCreator(object):
         self.name = title.replace(' ', '')
         self.uri = uri
         
-        self.bundle_id = '%s.%sActivity' % (domain_prefix, name)
+        self.bundle_id = '%s.%sActivity' % (domain_prefix, self.name)
         
         self.setup()
         
@@ -27,7 +27,7 @@ class SSBCreator(object):
         '''create tmp dir, setup paths, copy activity files'''
         self.bundle_path = activity.get_bundle_path()
         self.temp_path = tempfile.mkdtemp() # make sure there's no collisions
-        self.ssb_path = os.path.join(temp_path, self.name + '.activity')
+        self.ssb_path = os.path.join(self.temp_path, self.name + '.activity')
         
         # copy the entire bundle
         shutil.copytree(self.bundle_path, self.ssb_path)
@@ -74,7 +74,7 @@ class SSBCreator(object):
         # include the manifest
         files.append('MANIFEST')
 
-        self.xo_path = os.path.join(self.temp_path, name.lower() + '.xo')
+        self.xo_path = os.path.join(self.temp_path, self.name.lower() + '.xo')
 
         # zip everything
         xo = zipfile.ZipFile(self.xo_path, 'w', zipfile.ZIP_DEFLATED)

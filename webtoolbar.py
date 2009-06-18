@@ -435,12 +435,15 @@ class WebToolbar(gtk.Toolbar):
             ssb.create()
         except Exception, e:
             # DEBUG: alert shows exception message
-            alert.props.msg = _('Failed: ') + str(e)
+            try:
+                message = e.filename + e.lineno + str(e)
+            except:
+                message = str(e)
+            alert.props.msg = _('Failed: ') + message
         else:
+            ssb.install()
             alert.props.msg = _('Done! You can start it from Home View.')
  
-        ssb.install()
-        
         alert.connect('response', self._create_ssb_alert_response_cb)
         self._activity.add_alert(alert)
 
