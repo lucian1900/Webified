@@ -32,7 +32,7 @@ from sugar._sugarext import AddressEntry
 
 import filepicker
 import places
-import createssb
+import ssbcreator
 
 _MAX_HISTORY_ENTRIES = 15
 
@@ -426,13 +426,13 @@ class WebToolbar(gtk.Toolbar):
         else:
             name = first
 
-        creator = createssb.Creator(name, uri)
+        creator = ssbcreator.SSBCreator(name, uri)
 
         alert = NotifyAlert()
         alert.props.title = _('SSB Creation')
 
         try:
-            createssb.create()
+            creator.create()
         except Exception, e:
             # DEBUG: alert shows exception message
             alert.props.msg = _('Failed: ') + str(e)
