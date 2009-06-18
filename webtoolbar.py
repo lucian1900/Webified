@@ -428,6 +428,7 @@ class WebToolbar(gtk.Toolbar):
 
         ssb = ssbcreator.SSBCreator(name, uri)
 
+        # alert to show after creation
         alert = NotifyAlert()
         alert.props.title = _('SSB Creation')
 
@@ -437,15 +438,15 @@ class WebToolbar(gtk.Toolbar):
             # DEBUG: alert shows exception message
             try:
                 message = e.filename + e.lineno + str(e)
-            except:
+            except AttributeError:
                 message = str(e)
             alert.props.msg = _('Failed: ') + message
         else:
             ssb.install()
             alert.props.msg = _('Done! You can start it from Home View.')
- 
-        alert.connect('response', self._create_ssb_alert_response_cb)
-        self._activity.add_alert(alert)
+        finally:
+            alert.connect('response', self._create_ssb_alert_response_cb)
+            self._activity.add_alert(alert)
 
         # make sure temporary files get deleted
         del ssb

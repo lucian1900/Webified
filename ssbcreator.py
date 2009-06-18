@@ -11,14 +11,16 @@ import os
 import tempfile
 import zipfile
 import logging
+
+DOMAIN_PREFIX = 'org.sugarlabs.ssb'
     
 class SSBCreator(object):
-    def __init__(self, title, uri, domain_prefix='org.sugarlabs.ssb'):
+    def __init__(self, title, uri):
         self.title = title
         self.name = title.replace(' ', '')
         self.uri = uri
         
-        self.bundle_id = '%s.%sActivity' % (domain_prefix, self.name)
+        self.bundle_id = '%s.%sActivity' % (DOMAIN_PREFIX, self.name)
         
         self.setup()
         
