@@ -1,6 +1,8 @@
 from sugar.activity import activity
+from sugar.datastore import datastore
 from sugar.activity import bundlebuilder as bb
 from sugar.bundle.activitybundle import ActivityBundle
+from sugar import profile
 # how about sugar.util.list_files ?
 
 from ConfigParser import ConfigParser
@@ -8,6 +10,7 @@ import shutil
 import os
 import tempfile
 import zipfile
+import logging
     
 class SSBCreator(object):
     def __init__(self, title, uri, domain_prefix='org.sugarlabs.ssb'):
@@ -85,6 +88,15 @@ class SSBCreator(object):
 
     def install(self):
         '''install the generated .xo bundle'''
-        # TODO investigate offering 'download' link for the .xo
         bundle = ActivityBundle(self.xo_path)
         bundle.install()
+        
+    def send_to_journal():
+        '''send the generated .xo bundle to the journal'''
+        # TODO: investigate sending the .xo to the journal
+        jobject = datastore.create()
+        jobject.metadata['title'] = self.title
+        jobject.metadata['mime_type'] = 'application/vnd.olpc-sugar'
+        jobject.metadata['icon-color'] = profile.get_color().to_string()
+        jobject.file_path = self.xo_path
+        datastore.write(jobject)

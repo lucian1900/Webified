@@ -450,12 +450,5 @@ class WebToolbar(gtk.Toolbar):
         # make sure temporary files get deleted
         del ssb
         
-        # TODO: investigate sending the .xo to the journal
-        #jobject = datastore.create()
-        #jobject.metadata['title'] = title
-        #jobject.metadata['mime_type'] = 'application/vnd.olpc-sugar'
-        #jobject.file_path = path
-        #datastore.write(jobject)
-        
     def _create_ssb_alert_response_cb(self, alert, response_id):
         self._activity.remove_alert(alert)
