@@ -17,6 +17,7 @@
 from gettext import gettext as _
 
 import gtk
+import logging
 
 from sugar.graphics.toolbutton import ToolButton
 
