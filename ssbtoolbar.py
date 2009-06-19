@@ -17,6 +17,7 @@
 from gettext import gettext as _
 
 import gtk
+import logging
 
 from sugar.graphics.toolbutton import ToolButton
 
@@ -29,25 +30,16 @@ class SSBToolbar(gtk.Toolbar):
         self._activity.tray.connect('map', self.__map_cb)
 
         self._browser = self._activity._browser
+        
+        self.bookmarklet = ToolButton('bookmarklet')
+        self.bookmarklet.set_tooltip(_('Add bookmarklet'))
+        self.bookmarklet.connect('clicked', self.__bookmarklet_clicked_cb)
+        self.insert(self.bookmarklet, -1)
+        self.bookmarklet.show()
                 
-        self.zoomout = ToolButton('zoom-out')
-        self.zoomout.set_tooltip(_('Zoom out'))
-        self.zoomout.connect('clicked', self.__zoomout_clicked_cb)
-        self.insert(self.zoomout, -1)
-        self.zoomout.show()
-
-        self.zoomin = ToolButton('zoom-in')
-        self.zoomin.set_tooltip(_('Zoom in'))
-        self.zoomin.connect('clicked', self.__zoomin_clicked_cb)
-        self.insert(self.zoomin, -1)
-        self.zoomin.show()
-                
-    def __zoomin_clicked_cb(self, button):
-        self._browser.zoom_in()
-         
-    def __zoomout_clicked_cb(self, button):
-        self._browser.zoom_out()
-
+    def __bookmarklet_clicked_cb(self, button):
+        logging.debug('add bookmarklet clicked')
+        
     def __tray_clicked_cb(self, button):        
         if self._activity.tray.props.visible is False:
             self._activity.tray.show()

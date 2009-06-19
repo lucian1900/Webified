@@ -21,6 +21,7 @@ class SSBCreator(object):
         self.uri = uri
         
         self.bundle_id = '%s.%sActivity' % (DOMAIN_PREFIX, self.name)
+        logging.debug('bundle_id: ' + self.bundle_id)
         
         self.setup()
         
@@ -87,6 +88,8 @@ class SSBCreator(object):
             xo.write(os.path.join(self.ssb_path, i), 
                      os.path.join(self.name + '.activity', i))
         xo.close()
+        
+        logging.debug('.xo bundle path: ' + self.xo_path)
 
     def install(self):
         '''install the generated .xo bundle'''
