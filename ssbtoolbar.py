@@ -24,6 +24,21 @@ import ConfigParser
 from sugar.activity import activity
 from sugar.graphics.toolbutton import ToolButton
 
+class BookmarkletButton(ToolButton):
+    def __init__(self, toolbar, name, uri):
+        self._name = name
+        self._uri = uri
+        self._toolbar = toolbar
+        self._activity = toolbar._activity
+    
+        # set up button
+        ToolButton.__init__(self, 'bm-' + self._name)
+        self.set_tooltip(self._name)
+        self.connect('clicked', self._clicked_cb)
+        
+    def _clicked_cb(self, button):
+        logging.debug('clicked ' + self._name)
+
 class SSBToolbar(gtk.Toolbar):
     def __init__(self, activity):
         gtk.Toolbar.__init__(self)
@@ -45,33 +60,18 @@ class SSBToolbar(gtk.Toolbar):
         self.insert(self.separator, -1)
         self.separator.show()
 
-        self._set_bookmarklet('google', 'http://google.com', 'bla')
+        # DEBUG
+        self._set_bookmarklet('google', 'http://google.com')
         
-        self.bookmarklets = []
-        self._bookmarklet_cbs = []
+        self.bookmarklets = {}
         
         # add buttons for each stored bookmarklet
-        for i in self._list_bookmarklets():
-            uri, descr = self._get_bookmarklet(i)
-            bm = self._add_bookmarklet_button(i, uri, descr)
+        for name in self._list_bookmarklets():
+            uri = self._get_bookmarklet(name)
+            bm = BookmarkletButton(self, name, uri)
+            self.bookmarklets[name] = bm
             self.insert(bm, -1)
             bm.show()
-            self.bookmarklets.append(bm)
-
-    def _add_bookmarklet_button(self, name, uri, descr):
-        logging.debug('adding bookmarklet')
-        bm = ToolButton('bm-'+name)
-        bm.set_tooltip(name)
-
-        def bm_cb(button):
-            logging.debug('clicked '+name)
-
-        # add the callback to the Toolbar object
-        setattr(self, '_bm_%s_cb' % name, bm_cb)
-
-        bm.connect('clicked', getattr(self, '_bm_%s_cb' % name))
-        
-        return bm
         
     def _set_bm_config(self):
         self._bm_config = ConfigParser.ConfigParser()
@@ -91,14 +91,11 @@ class SSBToolbar(gtk.Toolbar):
         return self._bm_config.sections()
 
     def _get_bookmarklet(self, name):
-        uri = self._bm_config.get(name, 'uri')
-        description = self._bm_config.get(name, 'description')
-        return uri, description
+        return self._bm_config.get(name, 'uri')
         
-    def _set_bookmarklet(self, name, uri, description):
+    def _set_bookmarklet(self, name, uri):
         self._bm_config.add_section(name)
         self._bm_config.set(name, 'uri', uri)
-        self._bm_config.set(name, 'description', description)
     
     def __bookmarklet_clicked_cb(self, button):
         logging.debug('add bookmarklet clicked')
