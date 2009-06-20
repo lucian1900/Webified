@@ -29,7 +29,7 @@ class BookmarkletButton(ToolButton):
         self._name = name
         self._uri = uri
         self._toolbar = toolbar
-        self._activity = toolbar._activity
+        self._browser = toolbar._activity._browser
     
         # set up button
         ToolButton.__init__(self, 'bm-' + self._name)
@@ -38,6 +38,8 @@ class BookmarkletButton(ToolButton):
         
     def _clicked_cb(self, button):
         logging.debug('clicked ' + self._name)
+        self._browser.load_uri(self._uri)
+        
 
 class SSBToolbar(gtk.Toolbar):
     def __init__(self, activity):
@@ -62,6 +64,7 @@ class SSBToolbar(gtk.Toolbar):
 
         # DEBUG
         self._set_bookmarklet('google', 'http://google.com')
+        self._set_bookmarklet('hello', 'javascript:alert("hello");')
         
         self.bookmarklets = {}
         
