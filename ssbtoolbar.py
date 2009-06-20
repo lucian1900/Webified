@@ -37,23 +37,36 @@ class SSBToolbar(gtk.Toolbar):
         self.insert(self.bookmarklet, -1)
         self.bookmarklet.show()
         
-        self._bm_config()
+        self._set_bm_config()
+
+        self._set_bookmarklet('google', 'http://google.com', 'bla')
         
     def _set_bm_config(self):
         self._bm_config = ConfigParser.ConfigParser()
         self.config_path = activity.get_activity_root()
-        self.config_path = os.path.join(config_path, 'data/bookmarklets.info')
+        self.config_path = os.path.join(self.config_path,
+                                        'data/ssb/bookmarklets.info')
         self._bm_config.read(self.config_path)
-    
+
+        logging.debug(self.config_path)
+
+    def _write_bm_config(self):
+        f = open(self.config_path, 'w')
+        self._bm_config.write(f)    
+        f.close()
+
     def _get_bookmarklet(self, name):
         uri = self._bm_config.get(name, 'uri')
         description = self._bm_config.get(name, 'description')
         return uri, description
         
     def _set_bookmarklet(self, name, uri, description):
+        self._bm_config.add_section(name)
         self._bm_config.set(name, 'uri', uri)
         self._bm_config.set(name, 'description', description)
     
     def __bookmarklet_clicked_cb(self, button):
         logging.debug('add bookmarklet clicked')
         # TODO everything
+        self._write_bm_config()
+        

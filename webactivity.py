@@ -223,8 +223,9 @@ class WebActivity(activity.Activity):
         self._view_toolbar = ViewToolbar(self)
         toolbox.add_toolbar(_('View'), self._view_toolbar)
         self._view_toolbar.show()
-
-        if IS_SSB:
+        
+        #if IS_SSB: #temporarily disabled
+        if True:
             self._ssb_toolbar = SSBToolbar(self)
             toolbox.add_toolbar(_('Customize'), self._ssb_toolbar)
             self._ssb_toolbar.show()
