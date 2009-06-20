@@ -447,9 +447,6 @@ class WebToolbar(gtk.Toolbar):
         finally:
             alert.connect('response', self._create_ssb_alert_response_cb)
             self._activity.add_alert(alert)
-
-        # make sure temporary files get deleted
-        del ssb
         
     def _create_ssb_alert_response_cb(self, alert, response_id):
         self._activity.remove_alert(alert)

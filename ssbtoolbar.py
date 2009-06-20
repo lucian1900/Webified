@@ -16,19 +16,19 @@
 
 from gettext import gettext as _
 
+import os
 import gtk
 import logging
+import ConfigParser
 
+from sugar.activity import activity
 from sugar.graphics.toolbutton import ToolButton
 
 class SSBToolbar(gtk.Toolbar):
     def __init__(self, activity):
         gtk.Toolbar.__init__(self)
-
-        self._activity = activity        
-        self._activity.tray.connect('unmap', self.__unmap_cb)
-        self._activity.tray.connect('map', self.__map_cb)
-
+        
+        self._activity = activity
         self._browser = self._activity._browser
         
         self.bookmarklet = ToolButton('bookmarklet')
@@ -36,29 +36,24 @@ class SSBToolbar(gtk.Toolbar):
         self.bookmarklet.connect('clicked', self.__bookmarklet_clicked_cb)
         self.insert(self.bookmarklet, -1)
         self.bookmarklet.show()
-                
+        
+        self._bm_config()
+        
+    def _set_bm_config(self):
+        self._bm_config = ConfigParser.ConfigParser()
+        self.config_path = activity.get_activity_root()
+        self.config_path = os.path.join(config_path, 'data/bookmarklets.info')
+        self._bm_config.read(self.config_path)
+    
+    def _get_bookmarklet(self, name):
+        uri = self._bm_config.get(name, 'uri')
+        description = self._bm_config.get(name, 'description')
+        return uri, description
+        
+    def _set_bookmarklet(self, name, uri, description):
+        self._bm_config.set(name, 'uri', uri)
+        self._bm_config.set(name, 'description', description)
+    
     def __bookmarklet_clicked_cb(self, button):
         logging.debug('add bookmarklet clicked')
-        
-    def __tray_clicked_cb(self, button):        
-        if self._activity.tray.props.visible is False:
-            self._activity.tray.show()
-        else:
-            self._activity.tray.hide()
-
-    def __map_cb(self, tray):
-        if len(self._activity.tray.get_children()) > 0:
-            self.tray_set_hide()
-             
-    def __unmap_cb(self, tray):
-        if len(self._activity.tray.get_children()) > 0:
-            self.tray_set_show()
-        
-    def tray_set_show(self):     
-        self.traybutton.set_icon('tray-show')
-        self.traybutton.set_tooltip(_('Show Tray'))
-        
-    def tray_set_hide(self):
-        self.traybutton.set_icon('tray-hide')
-        self.traybutton.set_tooltip(_('Hide Tray'))
-        
+        # TODO everything

@@ -96,7 +96,7 @@ class SSBCreator(object):
         bundle = ActivityBundle(self.xo_path)
         bundle.install()
         
-    def send_to_journal():
+    def send_to_journal(self):
         '''send the generated .xo bundle to the journal'''
         # TODO: investigate sending the .xo to the journal
         jobject = datastore.create()
