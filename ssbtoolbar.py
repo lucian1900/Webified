@@ -35,6 +35,7 @@ class BookmarkletButton(ToolButton):
         ToolButton.__init__(self, 'bm-' + self._name)
         self.set_tooltip(self._name)
         self.connect('clicked', self._clicked_cb)
+        toolbar.insert(self, -1)
         
     def _clicked_cb(self, button):
         logging.debug('clicked ' + self._name)
@@ -51,11 +52,11 @@ class SSBToolbar(gtk.Toolbar):
         # set up the bookmarklet ConfigParser
         self._set_bm_config()
         
-        self.bookmarklet = ToolButton('bookmarklet')
-        self.bookmarklet.set_tooltip(_('Add bookmarklet'))
-        self.bookmarklet.connect('clicked', self.__bookmarklet_clicked_cb)
-        self.insert(self.bookmarklet, -1)
-        self.bookmarklet.show()
+        self.add_bookmarklet = ToolButton('bookmarklet')
+        self.add_bookmarklet.set_tooltip(_('Add bookmarklet'))
+        self.add_bookmarklet.connect('clicked', self.__add_bm_clicked_cb)
+        self.insert(self.add_bookmarklet, -1)
+        self.add_bookmarklet.show()
         
         self.separator = gtk.SeparatorToolItem()
         self.separator.set_draw(True)
@@ -63,8 +64,8 @@ class SSBToolbar(gtk.Toolbar):
         self.separator.show()
 
         # DEBUG
-        self._set_bookmarklet('google', 'http://google.com')
-        self._set_bookmarklet('hello', 'javascript:alert("hello");')
+        #self._set_bookmarklet('google', 'http://google.com')
+        #self._set_bookmarklet('hello', 'javascript:alert("hello");')
         
         self.bookmarklets = {}
         
@@ -73,7 +74,6 @@ class SSBToolbar(gtk.Toolbar):
             uri = self._get_bookmarklet(name)
             bm = BookmarkletButton(self, name, uri)
             self.bookmarklets[name] = bm
-            self.insert(bm, -1)
             bm.show()
         
     def _set_bm_config(self):
@@ -86,6 +86,13 @@ class SSBToolbar(gtk.Toolbar):
         logging.debug(self.config_path)
 
     def _write_bm_config(self):
+        # create data/ssb dir if it doesn't exist
+        dir_path = os.path.dirname(self.config_path)
+        if not os.path.isdir(dir_path):
+            logging.debug('creating data/ssb')
+            os.mkdir(dir_path)
+            
+        # write config
         f = open(self.config_path, 'w')
         self._bm_config.write(f)    
         f.close()
@@ -97,11 +104,15 @@ class SSBToolbar(gtk.Toolbar):
         return self._bm_config.get(name, 'uri')
         
     def _set_bookmarklet(self, name, uri):
-        self._bm_config.add_section(name)
+        try:
+            self._bm_config.add_section(name)
+        except ConfigParser.DuplicateSectionError:
+            pass # fail silently
+        
         self._bm_config.set(name, 'uri', uri)
+        self._write_bm_config()
     
-    def __bookmarklet_clicked_cb(self, button):
+    def __add_bm_clicked_cb(self, button):
         logging.debug('add bookmarklet clicked')
         # TODO everything
-        self._write_bm_config()
         

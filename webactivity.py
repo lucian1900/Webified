@@ -47,6 +47,17 @@ from sugar.graphics.alert import Alert
 from sugar.graphics.icon import Icon
 from sugar import mime
 
+# check if we're an SSB
+config = ConfigParser()
+config.read(os.path.join(activity.get_bundle_path(),
+            'activity/activity.info'))
+BUNDLE_ID =  config.get('Activity', 'bundle_id')
+
+if BUNDLE_ID.startswith('org.sugarlabs.ssb'):
+    IS_SSB = True
+else:
+    IS_SSB = False
+
 PROFILE_VERSION = 1
 
 _profile_version = 0
@@ -169,20 +180,9 @@ from sugar.presence.tubeconn import TubeConnection
 from messenger import Messenger
 from linkbutton import LinkButton
 
-# check if we're an SSB
-config = ConfigParser()
-config.read(os.path.join(activity.get_bundle_path(),
-            'activity/activity.info'))
-bundle_id =  config.get('Activity', 'bundle_id')
-
-if bundle_id.startswith('org.sugarlabs.ssb'):
-    IS_SSB = True
-else:
-    IS_SSB = False
-
-SERVICE = bundle_id
+SERVICE = BUNDLE_ID
 IFACE = SERVICE
-PATH = '/' + bundle_id.replace('.', '/')
+PATH = '/' + BUNDLE_ID.replace('.', '/')
 
 _TOOLBAR_EDIT = 1
 _TOOLBAR_BROWSE = 2
@@ -251,6 +251,7 @@ class WebActivity(activity.Activity):
                      
         self.toolbox.set_current_toolbar(_TOOLBAR_BROWSE)
         
+        # set permanent homepage for SSBs
         if IS_SSB:
             f = open(os.path.join(activity.get_bundle_path(),
                                   'data/homepage'))
