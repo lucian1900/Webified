@@ -436,11 +436,7 @@ class WebToolbar(gtk.Toolbar):
             ssb.create()
         except Exception, e:
             # DEBUG: alert shows exception message
-            try:
-                message = e.filename + e.lineno + str(e)
-            except AttributeError:
-                message = str(e)
-            alert.props.msg = _('Failed: ') + message
+            alert.props.msg = _('Failed: ') + str(e)
         else:
             ssb.install()
             alert.props.msg = _('Done! You can start it from Home View.')

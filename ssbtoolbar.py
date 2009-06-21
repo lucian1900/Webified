@@ -40,7 +40,6 @@ class BookmarkletButton(ToolButton):
     def _clicked_cb(self, button):
         logging.debug('clicked ' + self._name)
         self._browser.load_uri(self._uri)
-        
 
 class SSBToolbar(gtk.Toolbar):
     def __init__(self, activity):
