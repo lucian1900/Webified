@@ -31,7 +31,9 @@ import logging
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
 
 def is_ssb():
-    return get_bundle_id().startswith(DOMAIN_PREFIX)
+    #return get_bundle_id().startswith(DOMAIN_PREFIX)
+    # DEBUG
+    return True
     
 def get_bundle_id():
     config = ConfigParser()
@@ -41,7 +43,7 @@ def get_bundle_id():
     
 class BookmarkletStore(object):
     def __init__(self):
-        self._config = ConfigParser.ConfigParser()
+        self._config = ConfigParser()
         self.config_path = activity.get_activity_root()
         self.config_path = os.path.join(self.config_path,
                                         'data/ssb/bookmarklets.info')

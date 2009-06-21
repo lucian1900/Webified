@@ -50,17 +50,6 @@ class SSBToolbar(gtk.Toolbar):
         # set up the bookmarklet ConfigParser
         self._bm = ssb.BookmarkletStore()
         
-        self.add_bookmarklet = ToolButton('bookmarklet')
-        self.add_bookmarklet.set_tooltip(_('Add bookmarklet'))
-        self.add_bookmarklet.connect('clicked', self.__add_bm_clicked_cb)
-        self.insert(self.add_bookmarklet, -1)
-        self.add_bookmarklet.show()
-        
-        self.separator = gtk.SeparatorToolItem()
-        self.separator.set_draw(True)
-        self.insert(self.separator, -1)
-        self.separator.show()
-
         # DEBUG
         #self._set_bookmarklet('google', 'http://google.com')
         #self._set_bookmarklet('hello', 'javascript:alert("hello");')
@@ -73,8 +62,4 @@ class SSBToolbar(gtk.Toolbar):
             bm = BookmarkletButton(self, name, uri)
             self.bookmarklets[name] = bm
             bm.show()
-    
-    def __add_bm_clicked_cb(self, button):
-        logging.debug('add bookmarklet clicked')
-        # TODO everything
         
