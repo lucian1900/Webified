@@ -114,7 +114,7 @@ class LinkPalette(Palette):
         self.menu.append(menu_item)
         menu_item.show()
         
-        if IS_SSB url.startswith('javascript:'):
+        if IS_SSB and url.startswith('javascript:'):
             # only show in an ssb, if the link is a bookmarklet
             menu_item = MenuItem(_('Save bookmarklet'))
             menu_item.connect('activate', self.__bookmarklet_activate_cb)
