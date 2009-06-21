@@ -33,7 +33,7 @@ DOMAIN_PREFIX = 'org.sugarlabs.ssb'
 _is_ssb = None
 
 def is_ssb():
-    return True # DEBUG
+    return True # DEBUG will remove this line later
     global _is_ssb
     if _is_ssb is None:
         _is_ssb = get_bundle_id().startswith(DOMAIN_PREFIX)
