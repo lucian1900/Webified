@@ -30,10 +30,14 @@ import logging
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
 
+_is_ssb = None
+
 def is_ssb():
-    #return get_bundle_id().startswith(DOMAIN_PREFIX)
-    # DEBUG
-    return True
+    return True # DEBUG
+    global _is_ssb
+    if _is_ssb is None:
+        _is_ssb = get_bundle_id().startswith(DOMAIN_PREFIX)
+    return _is_ssb
     
 def get_bundle_id():
     config = ConfigParser()
