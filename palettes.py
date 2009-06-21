@@ -111,8 +111,8 @@ class LinkPalette(Palette):
         self.menu.append(menu_item)
         menu_item.show()
         
-        # only show in an ssb, if the link is a bookmarklet
         if ssb.is_ssb() and url.startswith('javascript:'):
+            # only show in an ssb, if the link is a bookmarklet
             menu_item = MenuItem    (_('Save bookmarklet'))
             menu_item.connect('activate', self.__bookmarklet_activate_cb)
             self.menu.append(menu_item)
@@ -152,7 +152,8 @@ class LinkPalette(Palette):
         downloadmanager.save_link(self._url, self._title, self._owner_document)
         
     def __bookmarklet_activate_cb(self, menu_item):
-        pass
+        bm = ssb.BookmarkletStore()
+        bm.set(self._title, self._url)
 
 class ImagePalette(Palette):
     def __init__(self, title, url, owner_document):

@@ -68,47 +68,11 @@ class SSBToolbar(gtk.Toolbar):
         self.bookmarklets = {}
         
         # add buttons for each stored bookmarklet
-        for name in self._list_bookmarklets():
-            uri = self._get_bookmarklet(name)
+        for name in self._bm.list():
+            uri = self._bm.get(name)
             bm = BookmarkletButton(self, name, uri)
             self.bookmarklets[name] = bm
             bm.show()
-        
-    def _set_bm_config(self):
-        self._bm_config = ConfigParser.ConfigParser()
-        self.config_path = activity.get_activity_root()
-        self.config_path = os.path.join(self.config_path,
-                                        'data/ssb/bookmarklets.info')
-        self._bm_config.read(self.config_path)
-
-        logging.debug(self.config_path)
-
-    def _write_bm_config(self):
-        # create data/ssb dir if it doesn't exist
-        dir_path = os.path.dirname(self.config_path)
-        if not os.path.isdir(dir_path):
-            logging.debug('creating data/ssb')
-            os.mkdir(dir_path)
-            
-        # write config
-        f = open(self.config_path, 'w')
-        self._bm_config.write(f)    
-        f.close()
-
-    def _list_bookmarklets(self):
-        return self._bm_config.sections()
-
-    def _get_bookmarklet(self, name):
-        return self._bm_config.get(name, 'uri')
-        
-    def _set_bookmarklet(self, name, uri):
-        try:
-            self._bm_config.add_section(name)
-        except ConfigParser.DuplicateSectionError:
-            pass # fail silently
-        
-        self._bm_config.set(name, 'uri', uri)
-        self._write_bm_config()
     
     def __add_bm_clicked_cb(self, button):
         logging.debug('add bookmarklet clicked')
