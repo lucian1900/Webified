@@ -32,7 +32,7 @@ from sugar._sugarext import AddressEntry
 
 import filepicker
 import places
-import ssbcreator
+import ssb
 
 _MAX_HISTORY_ENTRIES = 15
 
@@ -426,19 +426,19 @@ class WebToolbar(gtk.Toolbar):
         else:
             name = first
 
-        ssb = ssbcreator.SSBCreator(name, uri)
+        ssb_creator = ssb.SSBCreator(name, uri)
 
         # alert to show after creation
         alert = NotifyAlert()
         alert.props.title = _('SSB Creation')
 
         try:
-            ssb.create()
+            ssb_creator.create()
         except Exception, e:
             # DEBUG: alert shows exception message
             alert.props.msg = _('Failed: ') + str(e)
         else:
-            ssb.install()
+            ssb_creator.install()
             alert.props.msg = _('Done! You can start it from Home View.')
         finally:
             alert.connect('response', self._create_ssb_alert_response_cb)

@@ -31,6 +31,7 @@ from sugar import profile
 from sugar.activity import activity
 
 import downloadmanager
+import ssb
 
 class ContentInvoker(Invoker):
     _com_interfaces_ = interfaces.nsIDOMEventListener
@@ -109,6 +110,13 @@ class LinkPalette(Palette):
         menu_item.connect('activate', self.__download_activate_cb)
         self.menu.append(menu_item)
         menu_item.show()
+        
+        # only show in an ssb, if the link is a bookmarklet
+        if ssb.is_ssb() and url.startswith('javascript:'):
+            menu_item = MenuItem    (_('Save bookmarklet'))
+            menu_item.connect('activate', self.__bookmarklet_activate_cb)
+            self.menu.append(menu_item)
+            menu_item.show()
 
     def __follow_activate_cb(self, menu_item):
         self._browser.load_uri(self._url)
@@ -142,6 +150,9 @@ class LinkPalette(Palette):
 
     def __download_activate_cb(self, menu_item):
         downloadmanager.save_link(self._url, self._title, self._owner_document)
+        
+    def __bookmarklet_activate_cb(self, menu_item):
+        pass
 
 class ImagePalette(Palette):
     def __init__(self, title, url, owner_document):

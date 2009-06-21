@@ -19,9 +19,8 @@ from gettext import gettext as _
 import os
 import gtk
 import logging
-import ConfigParser
+import ssb
 
-from sugar.activity import activity
 from sugar.graphics.toolbutton import ToolButton
 
 class BookmarkletButton(ToolButton):
@@ -49,7 +48,7 @@ class SSBToolbar(gtk.Toolbar):
         self._browser = self._activity._browser
 
         # set up the bookmarklet ConfigParser
-        self._set_bm_config()
+        self._bm = ssb.BookmarkletStore()
         
         self.add_bookmarklet = ToolButton('bookmarklet')
         self.add_bookmarklet.set_tooltip(_('Add bookmarklet'))

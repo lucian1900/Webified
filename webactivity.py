@@ -47,17 +47,6 @@ from sugar.graphics.alert import Alert
 from sugar.graphics.icon import Icon
 from sugar import mime
 
-# check if we're an SSB
-config = ConfigParser()
-config.read(os.path.join(activity.get_bundle_path(),
-            'activity/activity.info'))
-BUNDLE_ID =  config.get('Activity', 'bundle_id')
-
-if BUNDLE_ID.startswith('org.sugarlabs.ssb'):
-    IS_SSB = True
-else:
-    IS_SSB = False
-
 PROFILE_VERSION = 1
 
 _profile_version = 0
@@ -172,6 +161,7 @@ from ssbtoolbar import SSBToolbar
 import downloadmanager
 import globalhistory
 import filepicker
+import ssb
 
 _LIBRARY_PATH = '/usr/share/library-common/index.html'
 
@@ -180,9 +170,11 @@ from sugar.presence.tubeconn import TubeConnection
 from messenger import Messenger
 from linkbutton import LinkButton
 
-SERVICE = BUNDLE_ID
+IS_SSB = ssb.is_ssb()
+
+SERVICE = ssb.get_bundle_id()
 IFACE = SERVICE
-PATH = '/' + BUNDLE_ID.replace('.', '/')
+PATH = '/' + SERVICE.replace('.', '/')
 
 _TOOLBAR_EDIT = 1
 _TOOLBAR_BROWSE = 2
