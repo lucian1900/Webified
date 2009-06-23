@@ -33,8 +33,6 @@ from sugar.activity import activity
 import downloadmanager
 import ssb
 
-IS_SSB = ssb.is_ssb()
-
 class ContentInvoker(Invoker):
     _com_interfaces_ = interfaces.nsIDOMEventListener
 
@@ -109,13 +107,14 @@ class LinkPalette(Palette):
         self.menu.append(menu_item)
         menu_item.show()
         
-        if IS_SSB and url.startswith('javascript:'):
+        if url.startswith('javascript:'):
             # only show in an ssb, if the link is a bookmarklet
             menu_item = MenuItem(_('Save bookmarklet'))
             menu_item.connect('activate', self.__bookmarklet_activate_cb)
             self.menu.append(menu_item)
             menu_item.show()
         else:
+            # if the link isn't a bookmarklet
             menu_item = MenuItem(_('Download link'))
             menu_item.connect('activate', self.__download_activate_cb)
             self.menu.append(menu_item)

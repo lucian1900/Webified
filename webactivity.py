@@ -125,7 +125,6 @@ def _seed_xs_cookie():
     else:
         _logger.debug('seed_xs_cookie: Updated cookie successfully')
 
-
 import hulahop
 hulahop.set_app_version(os.environ['SUGAR_BUNDLE_VERSION'])
 hulahop.startup(_profile_path)
@@ -170,11 +169,18 @@ from sugar.presence.tubeconn import TubeConnection
 from messenger import Messenger
 from linkbutton import LinkButton
 
-IS_SSB = ssb.is_ssb()
-
-SERVICE = ssb.get_bundle_id()
-IFACE = SERVICE
-PATH = '/' + SERVICE.replace('.', '/')
+def _set_globals(bundle_id):
+    '''Set up the dbus strings and IS_SSB'''
+    global SERVICE, IFACE, PATH
+    SERVICE = bundle_id
+    IFACE = bundle_id
+    PATH = '/' + bundle_id.replace('.', '/')
+    
+    global IS_SSB
+    if bundle_id.startswith(ssb.DOMAIN_PREFIX):
+        IS_SSB = True
+    else:
+        IS_SSB = False
 
 _TOOLBAR_EDIT = 1
 _TOOLBAR_BROWSE = 2
@@ -191,7 +197,8 @@ class WebActivity(activity.Activity):
 
         _set_accept_languages()
         _seed_xs_cookie()
-        
+        _set_globals(self.get_bundle_id())        
+                
         # don't pick up the sugar theme - use the native mozilla one instead
         cls = components.classes['@mozilla.org/preferences-service;1']
         pref_service = cls.getService(components.interfaces.nsIPrefService)
@@ -216,11 +223,9 @@ class WebActivity(activity.Activity):
         toolbox.add_toolbar(_('View'), self._view_toolbar)
         self._view_toolbar.show()
         
-        #if IS_SSB: #temporarily disabled
-        if True:
-            self._ssb_toolbar = SSBToolbar(self)
-            toolbox.add_toolbar(_('Customize'), self._ssb_toolbar)
-            self._ssb_toolbar.show()
+        self._ssb_toolbar = SSBToolbar(self)
+        toolbox.add_toolbar(_('Bookmarklets'), self._ssb_toolbar)
+        self._ssb_toolbar.show()
 
         self.set_toolbox(toolbox)
         toolbox.show()
