@@ -108,16 +108,16 @@ class LinkPalette(Palette):
         menu_item.connect('activate', self.__copy_activate_cb)
         self.menu.append(menu_item)
         menu_item.show()
-
-        menu_item = MenuItem(_('Download link'))
-        menu_item.connect('activate', self.__download_activate_cb)
-        self.menu.append(menu_item)
-        menu_item.show()
         
         if IS_SSB and url.startswith('javascript:'):
             # only show in an ssb, if the link is a bookmarklet
             menu_item = MenuItem(_('Save bookmarklet'))
             menu_item.connect('activate', self.__bookmarklet_activate_cb)
+            self.menu.append(menu_item)
+            menu_item.show()
+        else:
+            menu_item = MenuItem(_('Download link'))
+            menu_item.connect('activate', self.__download_activate_cb)
             self.menu.append(menu_item)
             menu_item.show()
 
