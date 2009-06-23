@@ -29,20 +29,6 @@ import zipfile
 import logging
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
-
-_is_ssb = None
-
-def is_ssb(bundle_id=None):
-    global _is_ssb
-    if _is_ssb is None:
-        _is_ssb = bundle_id.startswith(DOMAIN_PREFIX)
-    return _is_ssb
-    
-#def get_bundle_id():
-#    config = ConfigParser()
-#    config.read(os.path.join(activity.get_bundle_path(),
-#            'activity/activity.info'))
-#    return  config.get('Activity', 'bundle_id')
     
 class BookmarkletStore(object):
     def __init__(self):
