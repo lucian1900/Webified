@@ -50,7 +50,7 @@ class BookmarkletStore(gobject.GObject):
         # create data/ssb dir if it doesn't exist
         dir_path = os.path.dirname(self.config_path)
         if not os.path.isdir(dir_path):
-            logging.debug('creating data/ssb')
+            logging.debug('********** creating data/ssb')
             os.mkdir(dir_path)
         
         # write config
@@ -60,16 +60,22 @@ class BookmarkletStore(gobject.GObject):
 
     def list(self):
         return self._config.sections()
+        
+    def remove(self, name):
+        self._config.remove_section(name)
+        self.write()
 
     def get(self, name):
         return self._config.get(name, 'url')
     
     def add(self, name, url):
+        logging.debug('***** store.add')
         try:
             self._config.add_section(name)
         except ConfigParser.DuplicateSectionError:
-            pass # fail silently
-    
+            logging.debug('***** duplicate section')
+            return
+        
         self._config.set(name, 'url', url)
         self.write()
         
