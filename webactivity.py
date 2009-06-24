@@ -161,6 +161,7 @@ import downloadmanager
 import globalhistory
 import filepicker
 import ssb
+import bookmarklets
 
 _LIBRARY_PATH = '/usr/share/library-common/index.html'
 
@@ -223,9 +224,9 @@ class WebActivity(activity.Activity):
         toolbox.add_toolbar(_('View'), self._view_toolbar)
         self._view_toolbar.show()
         
-        if len(ssb.BookmarkletStore().list()) > 0:
-            self._bm_toolbar = BookmarkletToolbar(self)
-            toolbox.add_toolbar(_('Bookmarklets'), self._bm_toolbar)
+        self._bm_toolbar = BookmarkletToolbar(self)
+        toolbox.add_toolbar(_('Bookmarklets'), self._bm_toolbar)
+        if len(bookmarklets.get_store().list()) > 0:
             self._bm_toolbar.show()
 
         self.set_toolbox(toolbox)

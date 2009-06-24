@@ -58,7 +58,7 @@ class SSBCreator(object):
         '''change the .info file accordingly'''
         path = os.path.join(self.ssb_path, 'activity/activity.info')
         
-        config = ConfigParser()
+        config = ConfigParser.RawConfigParser()
         config.read(path)
 
         if config.get('Activity', 'name') == 'Browse':

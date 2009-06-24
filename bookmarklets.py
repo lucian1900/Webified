@@ -14,18 +14,30 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import sha
+import ConfigParser
+import os
+import logging
+import gobject
+
+from sugar.activity import activity
 
 _bm_store = None
 
-def get_bm_store():
+def get_store():
     global _bm_store
     if _bm_store is None:
         _bm_store = BookmarkletStore()
     return _bm_store
     
-class BookmarkletStore(object):
+class BookmarkletStore(gobject.GObject):
+    __gsignals__ = {
+        'add_bookmarklet': (gobject.SIGNAL_RUN_FIRST,
+                            gobject.TYPE_NONE, ([str])),
+        }
+        
     def __init__(self):
+        gobject.GObject.__init__(self)    
+        
         self._config = ConfigParser.RawConfigParser()
         self.config_path = activity.get_activity_root()
         self.config_path = os.path.join(self.config_path,
@@ -50,14 +62,16 @@ class BookmarkletStore(object):
         return self._config.sections()
 
     def get(self, name):
-        return self._config.get(name, 'uri')
+        return self._config.get(name, 'url')
     
-    def add(self, name, uri):
+    def add(self, name, url):
         try:
             self._config.add_section(name)
         except ConfigParser.DuplicateSectionError:
             pass # fail silently
     
-        self._config.set(name, 'uri', uri)
+        self._config.set(name, 'url', url)
         self.write()
+        
+        self.emit('add_bookmarklet', name)
 

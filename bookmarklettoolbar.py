@@ -21,7 +21,7 @@ import logging
 
 from sugar.graphics.toolbutton import ToolButton
 
-import ssb
+import bookmarklets
 
 class BookmarkletButton(ToolButton):
     def __init__(self, toolbar, name, uri):
@@ -48,7 +48,9 @@ class BookmarkletToolbar(gtk.Toolbar):
         self._browser = self._activity._browser
 
         # set up the bookmarklet ConfigParser
-        self._bm_store = ssb.get_bm_store()
+        self._bm_store = bookmarklets.get_store()
+        
+        self._bm_store.connect('add_bookmarklet', self._add_bookmarklet_cb)
         
         # DEBUG
         #self._set_bookmarklet('google', 'http://google.com')
@@ -58,8 +60,12 @@ class BookmarkletToolbar(gtk.Toolbar):
         
         # add buttons for each stored bookmarklet
         for name in self._bm_store.list():
-            uri = self._bm_store.get(name)
-            bm = BookmarkletButton(self, name, uri)
+            url = self._bm_store.get(name)
+            bm = BookmarkletButton(self, name, url)
             self.bookmarklets[name] = bm
             bm.show()
-        
+            
+    def _add_bookmarklet_cb(self, store, name):
+        url = store.get(name)
+        self.bookmarklets[name] = BookmarkletButton(self, name, url)
+        self.bookmarklets[name].show()
