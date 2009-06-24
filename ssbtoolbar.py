@@ -15,13 +15,13 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 from gettext import gettext as _
-
 import os
 import gtk
 import logging
-import ssb
 
 from sugar.graphics.toolbutton import ToolButton
+
+import ssb
 
 class BookmarkletButton(ToolButton):
     def __init__(self, toolbar, name, uri):
@@ -40,7 +40,7 @@ class BookmarkletButton(ToolButton):
         logging.debug('clicked ' + self._name)
         self._browser.load_uri(self._uri)
 
-class SSBToolbar(gtk.Toolbar):
+class BookmarkletToolbar(gtk.Toolbar):
     def __init__(self, activity):
         gtk.Toolbar.__init__(self)
         

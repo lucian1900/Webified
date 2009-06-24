@@ -156,7 +156,7 @@ from browser import Browser
 from edittoolbar import EditToolbar
 from webtoolbar import WebToolbar
 from viewtoolbar import ViewToolbar
-from ssbtoolbar import SSBToolbar
+from ssbtoolbar import BookmarkletToolbar
 import downloadmanager
 import globalhistory
 import filepicker
@@ -223,9 +223,9 @@ class WebActivity(activity.Activity):
         toolbox.add_toolbar(_('View'), self._view_toolbar)
         self._view_toolbar.show()
         
-        self._ssb_toolbar = SSBToolbar(self)
-        toolbox.add_toolbar(_('Bookmarklets'), self._ssb_toolbar)
-        self._ssb_toolbar.show()
+        self._bm_toolbar = BookmarkletToolbar(self)
+        toolbox.add_toolbar(_('Bookmarklets'), self._bm_toolbar)
+        self._bm_toolbar.show()
 
         self.set_toolbox(toolbox)
         toolbox.show()
