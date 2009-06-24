@@ -156,7 +156,7 @@ from browser import Browser
 from edittoolbar import EditToolbar
 from webtoolbar import WebToolbar
 from viewtoolbar import ViewToolbar
-from ssbtoolbar import BookmarkletToolbar
+from bookmarklettoolbar import BookmarkletToolbar
 import downloadmanager
 import globalhistory
 import filepicker
