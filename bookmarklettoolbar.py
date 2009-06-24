@@ -17,7 +17,6 @@
 from gettext import gettext as _
 import os
 import gtk
-import logging
 
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.palette import Palette
@@ -29,7 +28,7 @@ class BookmarkletButton(ToolButton):
         self._name = name
         self._uri = uri
         self._toolbar = toolbar
-        self._browser = toolbar._activity._browser
+        self._activity = toolbar._activity
     
         # set up button
         ToolButton.__init__(self, 'bm-' + self._name)
@@ -44,9 +43,11 @@ class BookmarkletButton(ToolButton):
         palette.menu.append(menu_item)
         menu_item.show()
         
+        # make sure the toolbar is visible
+        toolbar.show()
+                    
     def _clicked_cb(self, button):
-        logging.debug('clicked ' + self._name)
-        self._browser.load_uri(self._uri)
+        self._activity._browser.load_uri(self._uri)
 
     def _remove_cb(self, widget):
         bookmarklets.get_store().remove(self._name)
@@ -63,23 +64,15 @@ class BookmarkletToolbar(gtk.Toolbar):
         # set up the bookmarklet ConfigParser
         self.store = bookmarklets.get_store()
         
-        self.store.connect('add_bookmarklet', self._add_bookmarklet_cb)
-        
-        # DEBUG
-        #self._set_bookmarklet('google', 'http://google.com')
-        #self._set_bookmarklet('hello', 'javascript:alert("hello");')
-        
+        self.store.connect('add_bookmarklet', self._add_bookmarklet)
+
         self.bookmarklets = {}
         
         # add buttons for each stored bookmarklet
         for name in self.store.list():
-            url = self.store.get(name)
-            bm = BookmarkletButton(self, name, url)
-            self.bookmarklets[name] = bm
-            bm.show()
+            self._add_bookmarklet(self.store, name)
             
-    def _add_bookmarklet_cb(self, store, name):
-        logging.debug('***** _add_bookmarklet_cb')
+    def _add_bookmarklet(self, store, name):
         url = store.get(name)
         bm = BookmarkletButton(self, name, url)
         self.bookmarklets[name] = bm

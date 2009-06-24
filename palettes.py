@@ -17,7 +17,6 @@
 import os
 import tempfile
 import urlparse
-import logging
 from gettext import gettext as _
 
 import gtk
@@ -155,7 +154,6 @@ class LinkPalette(Palette):
         downloadmanager.save_link(self._url, self._title, self._owner_document)
         
     def __bookmarklet_activate_cb(self, menu_item):
-        logging.debug('***** palette add')
         bookmarklets.get_store().add(self._title, self._url)
 
 class ImagePalette(Palette):

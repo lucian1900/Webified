@@ -16,7 +16,6 @@
 
 import ConfigParser
 import os
-import logging
 import gobject
 
 from sugar.activity import activity
@@ -44,13 +43,10 @@ class BookmarkletStore(gobject.GObject):
                                         'data/ssb/bookmarklets.info')
         self._config.read(self.config_path)
 
-        logging.debug(self.config_path)
-
     def write(self):
         # create data/ssb dir if it doesn't exist
         dir_path = os.path.dirname(self.config_path)
         if not os.path.isdir(dir_path):
-            logging.debug('********** creating data/ssb')
             os.mkdir(dir_path)
         
         # write config
@@ -69,12 +65,10 @@ class BookmarkletStore(gobject.GObject):
         return self._config.get(name, 'url')
     
     def add(self, name, url):
-        logging.debug('***** store.add')
         try:
             self._config.add_section(name)
         except ConfigParser.DuplicateSectionError:
-            logging.debug('***** duplicate section')
-            return
+            return # fail silently for now
         
         self._config.set(name, 'url', url)
         self.write()
