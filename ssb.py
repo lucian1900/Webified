@@ -29,45 +29,7 @@ import zipfile
 import logging
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
-    
-class BookmarkletStore(object):
-    def __init__(self):
-        self._config = ConfigParser.RawConfigParser()
-        self.config_path = activity.get_activity_root()
-        self.config_path = os.path.join(self.config_path,
-                                        'data/ssb/bookmarklets.info')
-        self._config.read(self.config_path)
 
-        logging.debug(self.config_path)
-
-    def write(self):
-        # create data/ssb dir if it doesn't exist
-        dir_path = os.path.dirname(self.config_path)
-        if not os.path.isdir(dir_path):
-            logging.debug('creating data/ssb')
-            os.mkdir(dir_path)
-        
-        # write config
-        f = open(self.config_path, 'w')
-        self._config.write(f)    
-        f.close()
-
-    def list(self):
-        return self._config.sections()
-
-    def get(self, name):
-        return self._config.get(name, 'uri')
-    
-    def set(self, name, uri):
-        try:
-            self._config.add_section(name)
-        except ConfigParser.DuplicateSectionError:
-            pass # fail silently
-    
-        self._config.set(name, 'uri', uri)
-        self.write()
-
-    
 class SSBCreator(object):
     def __init__(self, title, uri):
         self.title = title

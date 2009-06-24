@@ -48,7 +48,7 @@ class BookmarkletToolbar(gtk.Toolbar):
         self._browser = self._activity._browser
 
         # set up the bookmarklet ConfigParser
-        self._bm = ssb.BookmarkletStore()
+        self._bm_store = ssb.get_bm_store()
         
         # DEBUG
         #self._set_bookmarklet('google', 'http://google.com')
@@ -57,8 +57,8 @@ class BookmarkletToolbar(gtk.Toolbar):
         self.bookmarklets = {}
         
         # add buttons for each stored bookmarklet
-        for name in self._bm.list():
-            uri = self._bm.get(name)
+        for name in self._bm_store.list():
+            uri = self._bm_store.get(name)
             bm = BookmarkletButton(self, name, uri)
             self.bookmarklets[name] = bm
             bm.show()

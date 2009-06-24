@@ -87,6 +87,7 @@ class LinkPalette(Palette):
         self._title = title
         self._url = url
         self._owner_document = owner_document
+        self._bm_store = ssb.get_bm_store()
         
         if title is not None:
             self.props.primary_text = title
@@ -154,8 +155,7 @@ class LinkPalette(Palette):
         downloadmanager.save_link(self._url, self._title, self._owner_document)
         
     def __bookmarklet_activate_cb(self, menu_item):
-        bm = ssb.BookmarkletStore()
-        bm.set(self._title, self._url)
+        self._bm_store.add(self._title, self._url)
 
 class ImagePalette(Palette):
     def __init__(self, title, url, owner_document):
