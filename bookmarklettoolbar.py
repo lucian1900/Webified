@@ -24,6 +24,8 @@ from sugar.graphics.palette import Palette
 
 import bookmarklets
 
+# HACK until we have toolbox.get_toolbars()
+_TOOLBAR_BROWSE = 2
 _TOOLBAR_BOOKMARKLETS = 4
 
 def alert(activity, text):
@@ -86,5 +88,6 @@ class BookmarkletToolbar(gtk.Toolbar):
         
     def destroy(self):
         self._activity.toolbox.remove_toolbar(_TOOLBAR_BOOKMARKLETS)
+        self._activity.toolbox.set_current_toolbar(_TOOLBAR_BROWSE)
         
         gtk.Toolbar.destroy(self)
