@@ -185,6 +185,7 @@ def _set_globals(bundle_id):
 
 _TOOLBAR_EDIT = 1
 _TOOLBAR_BROWSE = 2
+_TOOLBAR_BOOKMARKLETS = 4
 
 _logger = logging.getLogger('web-activity')
 
@@ -223,15 +224,13 @@ class WebActivity(activity.Activity):
         self._view_toolbar = ViewToolbar(self)
         toolbox.add_toolbar(_('View'), self._view_toolbar)
         self._view_toolbar.show()
-                
-        self._bm_toolbar = BookmarkletToolbar(self)
-        toolbox.add_toolbar(_('Bookmarklets'), self._bm_toolbar)
-        if len(bookmarklets.get_store().list()) > 0:
-            self._bm_toolbar.show()
+        
+        # the bookmarklet bar doesn't show up if empty
+        self._bm_toolbar = None
             
         self.set_toolbox(toolbox)
         toolbox.show()        
-
+        
         self.set_canvas(self._browser)
         self._browser.show()
 
@@ -240,6 +239,12 @@ class WebActivity(activity.Activity):
         self._web_toolbar.connect('add-link', self._link_add_button_cb)
 
         self._browser.connect("notify::title", self._title_changed_cb)
+        
+        self._bm_store = bookmarklets.get_store()
+        self._bm_store.connect('add_bookmarklet', self._add_bookmarklet_cb)
+        
+        for name in self._bm_store.list():
+            self._add_bookmarklet(name)
 
         self.model = Model()
         self.model.connect('add_link', self._add_link_model_cb)
@@ -487,6 +492,30 @@ class WebActivity(activity.Activity):
                 self._browser.zoom_in()
                 return True
         return False
+        
+    def _add_bookmarklet(self, name):
+        '''add bookmarklet button and, if needed the toolbar'''
+        if self._bm_toolbar is None:
+            self._bm_toolbar = BookmarkletToolbar(self)
+            self.toolbox.add_toolbar(_('Bookmarklets'), self._bm_toolbar)
+            self._bm_toolbar.show()
+        
+        if name not in self._bm_toolbar.bookmarklets:
+            self._bm_toolbar._add_bookmarklet(name)
+
+        # HACK until we have self.toolbox.get_toolbars():
+        #try:
+        #    alignment = self._bm_toolbar.parent.parent
+        #except AttributeError:
+        #    self.toolbox.add_toolbar(_('Bookmarklets'), self._bm_toolbar)
+        #    self._bm_toolbar.show()
+                
+    def _add_bookmarklet_cb(self, store, name):
+        '''receive name of new bookmarklet from the store'''
+        logging.debug('***** _add_bm_cb()')
+
+        self._add_bookmarklet(name)
+        self.toolbox.set_current_toolbar(_TOOLBAR_BOOKMARKLETS)
 
     def _add_link(self):
         ''' take screenshot and add link info to the model '''

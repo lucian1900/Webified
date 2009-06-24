@@ -17,18 +17,30 @@
 from gettext import gettext as _
 import os
 import gtk
+import logging
 
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.palette import Palette
 
 import bookmarklets
 
+_TOOLBAR_BOOKMARKLETS = 4
+
+def alert(activity, text):
+    from sugar.graphics.alert import NotifyAlert
+        
+    a = NotifyAlert()
+    a.props.title = 'DEBUG'
+    a.props.msg = str(text)
+    activity.add_alert(a)
+    a.show()
+
 class BookmarkletButton(ToolButton):
     def __init__(self, toolbar, name, uri):
         self._name = name
         self._uri = uri
         self._toolbar = toolbar
-        self._activity = toolbar._activity
+        self._browser = toolbar._activity._browser
     
         # set up button
         ToolButton.__init__(self, 'bm-' + self._name)
@@ -42,18 +54,19 @@ class BookmarkletButton(ToolButton):
         menu_item.connect('activate', self._remove_cb)
         palette.menu.append(menu_item)
         menu_item.show()
-        
-        # make sure the toolbar is visible
-        toolbar.show()
                     
     def _clicked_cb(self, button):
-        self._activity._browser.load_uri(self._uri)
+        self._browser.load_uri(self._uri)
 
     def _remove_cb(self, widget):
         bookmarklets.get_store().remove(self._name)
-        del self._toolbar.bookmarklets[self._name]
+        del self._toolbar.bookmarklets[self._name]        
         self.destroy()
-
+        
+        #alert(self._activity, self._toolbar.bookmarklets)
+        if len(self._toolbar.bookmarklets) == 0:
+            self._toolbar.destroy()
+        
 class BookmarkletToolbar(gtk.Toolbar):
     def __init__(self, activity):
         gtk.Toolbar.__init__(self)
@@ -61,19 +74,17 @@ class BookmarkletToolbar(gtk.Toolbar):
         self._activity = activity
         self._browser = self._activity._browser
 
-        # set up the bookmarklet ConfigParser
         self.store = bookmarklets.get_store()
         
-        self.store.connect('add_bookmarklet', self._add_bookmarklet)
-
         self.bookmarklets = {}
-        
-        # add buttons for each stored bookmarklet
-        for name in self.store.list():
-            self._add_bookmarklet(self.store, name)
             
-    def _add_bookmarklet(self, store, name):
-        url = store.get(name)
+    def _add_bookmarklet(self, name):
+        url = self.store.get(name)
         bm = BookmarkletButton(self, name, url)
         self.bookmarklets[name] = bm
         bm.show()
+        
+    def destroy(self):
+        self._activity.toolbox.remove_toolbar(_TOOLBAR_BOOKMARKLETS)
+        
+        gtk.Toolbar.destroy(self)

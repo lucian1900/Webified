@@ -17,22 +17,23 @@
 import ConfigParser
 import os
 import gobject
+import logging
 
 from sugar.activity import activity
 
-_bm_store = None
+_store = None
 
 def get_store():
-    global _bm_store
-    if _bm_store is None:
-        _bm_store = BookmarkletStore()
-    return _bm_store
+    global _store
+    if _store is None:
+        _store = BookmarkletStore()
+    return _store
     
 class BookmarkletStore(gobject.GObject):
     __gsignals__ = {
         'add_bookmarklet': (gobject.SIGNAL_RUN_FIRST,
                             gobject.TYPE_NONE, ([str])),
-        }
+    }
         
     def __init__(self):
         gobject.GObject.__init__(self)    
@@ -65,13 +66,18 @@ class BookmarkletStore(gobject.GObject):
         return self._config.get(name, 'url')
     
     def add(self, name, url):
-        try:
-            self._config.add_section(name)
-        except ConfigParser.DuplicateSectionError:
-            return # fail silently for now
+        logging.debug('***** bm.add()')
         
+        if not self._config.has_section(name):
+            self._add(name, url)
+        #elif self._config.get(name, 'url') != url: 
+        #    self.emit('overwrite_bookmarklet')
+        
+        self.emit('add_bookmarklet', name)
+        
+    def _add(self, name, url):
+        self._config.add_section(name)
         self._config.set(name, 'url', url)
         self.write()
         
-        self.emit('add_bookmarklet', name)
 
