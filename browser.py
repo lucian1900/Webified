@@ -94,7 +94,7 @@ class Browser(WebView):
 
     def __init__(self):
         WebView.__init__(self)
-
+        
         self.history = HistoryListener()
         self.progress = ProgressListener()
 

@@ -1,4 +1,4 @@
-# Copyright (C) 2007, One Laptop Per Child
+# Copyright (C) 2009, Lucian Branescu Mihaila
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -45,7 +45,7 @@ class BookmarkletButton(ToolButton):
         self._browser = toolbar._activity._browser
     
         # set up button
-        ToolButton.__init__(self, 'bm-' + self._name)
+        ToolButton.__init__(self, 'emblem-favorite')
         self.connect('clicked', self._clicked_cb)
         toolbar.insert(self, -1)
         

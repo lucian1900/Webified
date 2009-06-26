@@ -35,24 +35,18 @@ class SSBCreator(object):
         self.title = title
         self.name = title.replace(' ', '')
         self.uri = uri
+        self.bundle_id = '%s.%sActivity' % (DOMAIN_PREFIX, self.name)        
         
-        self.bundle_id = '%s.%sActivity' % (DOMAIN_PREFIX, self.name)
-        logging.debug('bundle_id: ' + self.bundle_id)
-        
-        self.setup()
-        
-    def __del__(self):
-        '''clean up after ourselves'''
-        shutil.rmtree(temp_path)
-        
-    def setup(self):
-        '''create tmp dir, setup paths, copy activity files'''
         self.bundle_path = activity.get_bundle_path()
         self.temp_path = tempfile.mkdtemp() # make sure there's no collisions
         self.ssb_path = os.path.join(self.temp_path, self.name + '.activity')
         
-        # copy the entire bundle
+        # copy the bundle
         shutil.copytree(self.bundle_path, self.ssb_path)
+        
+    def __del__(self):
+        '''clean up after ourselves'''
+        shutil.rmtree(temp_path)
         
     def change_info(self):
         '''change the .info file accordingly'''
@@ -92,7 +86,7 @@ class SSBCreator(object):
             f.write(i+'\n')
         f.close()
 
-        # create .xo
+        # create .xo bundle
         # include the manifest
         files.append('MANIFEST')
 
@@ -105,8 +99,6 @@ class SSBCreator(object):
                      os.path.join(self.name + '.activity', i))
         xo.close()
         
-        logging.debug('.xo bundle path: ' + self.xo_path)
-
     def install(self):
         '''install the generated .xo bundle'''
         bundle = ActivityBundle(self.xo_path)
