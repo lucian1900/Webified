@@ -507,10 +507,8 @@ class WebActivity(activity.Activity):
                 
     def _add_bookmarklet_cb(self, store, name):
         '''receive name of new bookmarklet from the store'''
-        logging.debug('***** _add_bm_cb()')
-
         bm = self._add_bookmarklet(name)
-        bm.animate()
+        bm.flash()
         
         self.toolbox.set_current_toolbar(_TOOLBAR_BOOKMARKLETS)
 
