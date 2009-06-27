@@ -18,6 +18,7 @@ from gettext import gettext as _
 import os
 import gtk
 import logging
+import gobject
 
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.palette import Palette
@@ -44,11 +45,12 @@ class BookmarkletButton(ToolButton):
         self._toolbar = toolbar
         self._browser = toolbar._activity._browser
     
-        # set up button
-        ToolButton.__init__(self, 'emblem-favorite')
+        # set up the button
+        ToolButton.__init__(self, 'bookmarklet')
         self.connect('clicked', self._clicked_cb)
         toolbar.insert(self, -1)
         
+        # and its palette
         palette = Palette(name, text_maxlen=50)
         self.set_palette(palette)
         
@@ -56,6 +58,10 @@ class BookmarkletButton(ToolButton):
         menu_item.connect('activate', self._remove_cb)
         palette.menu.append(menu_item)
         menu_item.show()
+            
+    def animate(self):          
+        gobject.timeout_add(500, self.set_icon, 'bookmarklet-new')
+        gobject.timeout_add(800, self.set_icon, 'bookmarklet')
                     
     def _clicked_cb(self, button):
         self._browser.load_uri(self._uri)

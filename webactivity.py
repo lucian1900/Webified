@@ -502,19 +502,16 @@ class WebActivity(activity.Activity):
         
         if name not in self._bm_toolbar.bookmarklets:
             self._bm_toolbar._add_bookmarklet(name)
-
-        # HACK until we have self.toolbox.get_toolbars():
-        #try:
-        #    alignment = self._bm_toolbar.parent.parent
-        #except AttributeError:
-        #    self.toolbox.add_toolbar(_('Bookmarklets'), self._bm_toolbar)
-        #    self._bm_toolbar.show()
+            
+        return self._bm_toolbar.bookmarklets[name]
                 
     def _add_bookmarklet_cb(self, store, name):
         '''receive name of new bookmarklet from the store'''
         logging.debug('***** _add_bm_cb()')
 
-        self._add_bookmarklet(name)
+        bm = self._add_bookmarklet(name)
+        bm.animate()
+        
         self.toolbox.set_current_toolbar(_TOOLBAR_BOOKMARKLETS)
 
     def _add_link(self):
