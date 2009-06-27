@@ -412,22 +412,23 @@ class WebToolbar(gtk.Toolbar):
         title = self._activity.webtitle
         uri = self._activity.current
         
+        # favicon code
         # get nsIURI object
-        cls = components.classes['@mozilla.org/network/io-service;1']
-        io_service = cls.getService(interfaces.nsIIOService)
+        #cls = components.classes['@mozilla.org/network/io-service;1']
+        #io_service = cls.getService(interfaces.nsIIOService)
         
-        ns_uri = io_service.newURI(uri, None, None)
-        logging.debug('***** %s' % ns_uri.spec)
+        #ns_uri = io_service.newURI(uri, None, None)
+        #logging.debug('***** %s' % ns_uri.spec)
         
         # get favicon
-        cls = components.classes['@mozilla.org/browser/favicon-service;1']
-        favicon_service = cls.getService(interfaces.nsIFaviconService)
+        #cls = components.classes['@mozilla.org/browser/favicon-service;1']
+        #favicon_service = cls.getService(interfaces.nsIFaviconService)
         
-        img_uri = favicon_service.getFaviconImageForPage(ns_uri)
-        logging.debug('***** %s' % img_uri.spec) 
+        #img_uri = favicon_service.getFaviconImageForPage(ns_uri)
+        #logging.debug('***** %s' % img_uri.spec) 
         
         # xpcom.Exception: -2147221231
-        favicon_service.getFaviconData(img_uri)
+        #favicon_service.getFaviconData(img_uri)
 
         pattern = re.compile(r'''
                       (\w+)  # first word

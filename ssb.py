@@ -63,6 +63,7 @@ class SSBCreator(object):
         config.set('Activity', 'activity_version', version)    
         config.set('Activity', 'name', self.title)
         config.set('Activity', 'bundle_id', self.bundle_id)
+        config.set('Activity', 'icon', 'activity-ssb')
 
         # 'commit' the changes
         f = open(path, 'w')
@@ -76,6 +77,10 @@ class SSBCreator(object):
         f = open(os.path.join(self.ssb_path, 'data/homepage'), 'w')
         f.write(self.uri)
         f.close()
+        
+        # add the ssb icon
+        shutil.copy(os.path.join(self.ssb_path, 'icons/activity-ssb.svg'),
+                    os.path.join(self.ssb_path, 'activity'))
 
         # create MANIFEST
         files = bb.list_files(self.ssb_path, ignore_dirs=bb.IGNORE_DIRS, 
