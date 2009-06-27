@@ -60,7 +60,11 @@ class BookmarkletButton(ToolButton):
         menu_item.show()
             
     def animate(self):          
-        gobject.timeout_add(500, self.set_icon, 'bookmarklet-new')
+        gobject.timeout_add(500, self.set_icon, 'bookmarklet-thick')
+        gobject.timeout_add(800, self.set_icon, 'bookmarklet')
+        
+    def flash(self):
+        gobject.timeout_add(500, self.set_icon, 'bookmarklet-inverted')
         gobject.timeout_add(800, self.set_icon, 'bookmarklet')
                     
     def _clicked_cb(self, button):
