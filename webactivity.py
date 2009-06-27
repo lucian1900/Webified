@@ -30,7 +30,7 @@ import shutil
 import sqlite3
 import cjson
 import gconf
-from ConfigParser import ConfigParser
+import shutil
 
 # HACK: Needed by http://dev.sugarlabs.org/ticket/456
 import gnome
@@ -46,6 +46,25 @@ from sugar import profile
 from sugar.graphics.alert import Alert
 from sugar.graphics.icon import Icon
 from sugar import mime
+
+# for SSBs, get the data from the bundle and into the profile
+ssb_data_path = os.path.join(activity.get_bundle_path(), 'data/ssb_data')
+data_path = os.path.join(activity.get_activity_root(), 'data')
+
+logging.debug('***** %s %s' % (data_path, os.listdir(data_path)) )
+
+if os.path.isdir(ssb_data_path):
+    # we can't use shutil.copytree for the entire dir
+    for i in os.listdir(ssb_data_path):
+        src = os.path.join(ssb_data_path, i)
+        dst = os.path.join(data_path, i)
+        if not os.path.exists(dst):
+            if os.path.isdir(src):
+                shutil.copytree(src, dst)
+            else: # is there a better way?
+                shutil.copy(src, dst)
+                
+logging.debug('***** %s %s' % (data_path, os.listdir(data_path)) )
 
 PROFILE_VERSION = 1
 
@@ -165,11 +184,6 @@ import bookmarklets
 
 _LIBRARY_PATH = '/usr/share/library-common/index.html'
 
-from model import Model
-from sugar.presence.tubeconn import TubeConnection
-from messenger import Messenger
-from linkbutton import LinkButton
-
 def _set_globals(bundle_id):
     '''Set up the dbus strings and IS_SSB'''
     global SERVICE, IFACE, PATH
@@ -182,6 +196,11 @@ def _set_globals(bundle_id):
         IS_SSB = True
     else:
         IS_SSB = False
+
+from model import Model
+from sugar.presence.tubeconn import TubeConnection
+from messenger import Messenger
+from linkbutton import LinkButton
 
 _TOOLBAR_EDIT = 1
 _TOOLBAR_BROWSE = 2
@@ -242,7 +261,6 @@ class WebActivity(activity.Activity):
         
         self._bm_store = bookmarklets.get_store()
         self._bm_store.connect('add_bookmarklet', self._add_bookmarklet_cb)
-        
         for name in self._bm_store.list():
             self._add_bookmarklet(name)
 
@@ -254,13 +272,13 @@ class WebActivity(activity.Activity):
         self.connect('key-press-event', self._key_press_cb)
                      
         self.toolbox.set_current_toolbar(_TOOLBAR_BROWSE)
-        
-        # set permanent homepage for SSBs
+                
         if IS_SSB:
+            # set permanent homepage for SSBs
             f = open(os.path.join(activity.get_bundle_path(),
                                   'data/homepage'))
             self.homepage = f.read()
-            f.close()
+            f.close()                
 
         if handle.uri:
             self._browser.load_uri(handle.uri)        
@@ -394,10 +412,10 @@ class WebActivity(activity.Activity):
 
              
     def _load_homepage(self):
-        if os.path.isfile(_LIBRARY_PATH):
-            self._browser.load_uri('file://' + _LIBRARY_PATH)
-        elif IS_SSB:
+        if IS_SSB:
             self._browser.load_uri(self.homepage)
+        elif os.path.isfile(_LIBRARY_PATH):
+            self._browser.load_uri('file://' + _LIBRARY_PATH)
         else:
             default_page = os.path.join(activity.get_bundle_path(), 
                                         "data/index.html")

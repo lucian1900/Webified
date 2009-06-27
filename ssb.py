@@ -38,15 +38,13 @@ class SSBCreator(object):
         self.bundle_id = '%s.%sActivity' % (DOMAIN_PREFIX, self.name)        
         
         self.bundle_path = activity.get_bundle_path()
+        self.data_path = os.path.join(activity.get_activity_root(), 'data')
         self.temp_path = tempfile.mkdtemp() # make sure there's no collisions
         self.ssb_path = os.path.join(self.temp_path, self.name + '.activity')
         
-        # copy the bundle
-        shutil.copytree(self.bundle_path, self.ssb_path)
-        
     def __del__(self):
         '''clean up after ourselves'''
-        shutil.rmtree(temp_path)
+        shutil.rmtree(self.temp_path)
         
     def change_info(self):
         '''change the .info file accordingly'''
@@ -71,16 +69,28 @@ class SSBCreator(object):
         f.close()
         
     def create(self):
+        # copy the bundle
+        shutil.copytree(self.bundle_path, self.ssb_path)
+        
         self.change_info()
+        
+        # add the ssb icon
+        shutil.copy(os.path.join(self.ssb_path, 'icons/activity-ssb.svg'),
+                    os.path.join(self.ssb_path, 'activity'))
         
         # set homepage
         f = open(os.path.join(self.ssb_path, 'data/homepage'), 'w')
         f.write(self.uri)
         f.close()
+
         
-        # add the ssb icon
-        shutil.copy(os.path.join(self.ssb_path, 'icons/activity-ssb.svg'),
-                    os.path.join(self.ssb_path, 'activity'))
+        # copy profile
+        ssb_data_path = os.path.join(self.ssb_path, 'data/ssb_data')
+        shutil.copytree(self.data_path, ssb_data_path)
+                      
+        # delete gecko caches
+        shutil.rmtree(os.path.join(ssb_data_path, 'gecko/Cache'))
+
 
         # create MANIFEST
         files = bb.list_files(self.ssb_path, ignore_dirs=bb.IGNORE_DIRS, 

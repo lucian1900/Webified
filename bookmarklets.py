@@ -41,7 +41,7 @@ class BookmarkletStore(gobject.GObject):
         self._config = ConfigParser.RawConfigParser()
         self.config_path = activity.get_activity_root()
         self.config_path = os.path.join(self.config_path,
-                                        'data/ssb/bookmarklets.info')
+                                        'data/bookmarklets.info')
         self._config.read(self.config_path)
 
     def write(self):
@@ -70,9 +70,9 @@ class BookmarkletStore(gobject.GObject):
         
         if not self._config.has_section(name):
             self._add(name, url)
-        #elif self._config.get(name, 'url') != url: 
+        # TODO handle the case of existing bookmarklets
+        #elif self._config.get(name, 'url') != url:
         #    self.emit('overwrite_bookmarklet')
-        
         self.emit('add_bookmarklet', name)
         
     def _add(self, name, url):
