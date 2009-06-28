@@ -33,6 +33,8 @@ class BookmarkletStore(gobject.GObject):
     __gsignals__ = {
         'add_bookmarklet': (gobject.SIGNAL_RUN_FIRST,
                             gobject.TYPE_NONE, ([str])),
+        'overwrite_bookmarklet': (gobject.SIGNAL_RUN_FIRST,
+                                  gobject.TYPE_NONE, ([str, str])),
     }
         
     def __init__(self):
@@ -43,6 +45,10 @@ class BookmarkletStore(gobject.GObject):
         self.config_path = os.path.join(self.config_path,
                                         'data/bookmarklets.info')
         self._config.read(self.config_path)
+
+    def __del__(self):
+        '''Save bookmarklets (usually when the activity is closed)'''
+        self.write()
 
     def write(self):
         # create data/ssb dir if it doesn't exist
@@ -60,24 +66,24 @@ class BookmarkletStore(gobject.GObject):
         
     def remove(self, name):
         self._config.remove_section(name)
-        self.write()
+        #self.write()
 
     def get(self, name):
         return self._config.get(name, 'url')
     
-    def add(self, name, url):
-        logging.debug('***** bm.add()')
-        
+    def add(self, name, url):        
         if not self._config.has_section(name):
             self._add(name, url)
-        # TODO handle the case of existing bookmarklets
-        #elif self._config.get(name, 'url') != url:
-        #    self.emit('overwrite_bookmarklet')
-        self.emit('add_bookmarklet', name)
+        elif self.get(name) != url:
+            self.emit('overwrite_bookmarklet', name, url)
         
+        # we don't care when the bookmarklet was added
+        if self._config.has_section(name) and self.get(name) == url:
+            self.emit('add_bookmarklet', name)
+                
     def _add(self, name, url):
         self._config.add_section(name)
         self._config.set(name, 'url', url)
-        self.write()
+        #self.write()
         
 

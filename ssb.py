@@ -141,12 +141,12 @@ class SSBCreator(object):
         
     def show_in_journal(self):
         '''send the generated .xo bundle to the journal'''
-        # TODO: investigate sending the .xo to the journal
         jobject = datastore.create()
         jobject.metadata['title'] = self.title
         jobject.metadata['mime_type'] = 'application/vnd.olpc-sugar'
         jobject.metadata['icon-color'] = profile.get_color().to_string()
         jobject.file_path = self.xo_path
+        
         datastore.write(jobject)
         
         activity.show_object_in_journal(jobject.object_id) 

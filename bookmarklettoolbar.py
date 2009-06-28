@@ -65,11 +65,15 @@ class BookmarkletButton(ToolButton):
 
     def _remove_cb(self, widget):
         bookmarklets.get_store().remove(self._name)
-        del self._toolbar.bookmarklets[self._name]        
         self.destroy()
+        
+    def destroy(self):
+        del self._toolbar.bookmarklets[self._name]        
         
         if len(self._toolbar.bookmarklets) == 0:
             self._toolbar.destroy()
+            
+        ToolButton.destroy(self)
         
 class BookmarkletToolbar(gtk.Toolbar):
     def __init__(self, activity):
@@ -83,6 +87,9 @@ class BookmarkletToolbar(gtk.Toolbar):
     def _add_bookmarklet(self, name):
         url = bookmarklets.get_store().get(name)
         self.bookmarklets[name] = BookmarkletButton(self, name, url)
+        
+    def _remove_bookmarklet(self, name):
+        self.bookmarklets[name].destroy()
         
     def destroy(self):
         self._activity.toolbox.remove_toolbar(_TOOLBAR_BOOKMARKLETS)

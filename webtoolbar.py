@@ -445,7 +445,7 @@ class WebToolbar(gtk.Toolbar):
         
         ok_icon = Icon(icon_name='dialog-ok') 
         alert.add_button(gtk.RESPONSE_OK, _('Install'), ok_icon) 
-        ok_icon.show()         
+        ok_icon.show()
            
         self._activity.add_alert(alert) 
         alert.connect('response', self._create_ssb_alert_cb)
@@ -461,9 +461,10 @@ class WebToolbar(gtk.Toolbar):
             alert.show()
         
     def _create_ssb_alert_cb(self, alert, response_id):
+        self._activity.remove_alert(alert)
+        
         if response_id is not gtk.RESPONSE_CANCEL:
             if response_id is gtk.RESPONSE_APPLY:   
                 self._ssb.show_in_journal()
             else:
                 self._ssb.install()
-        self._activity.remove_alert(alert)

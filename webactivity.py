@@ -43,7 +43,7 @@ import telepathy.client
 from sugar.presence import presenceservice
 from sugar.graphics.tray import HTray
 from sugar import profile
-from sugar.graphics.alert import Alert
+from sugar.graphics.alert import Alert, ConfirmationAlert
 from sugar.graphics.icon import Icon
 from sugar import mime
 
@@ -245,6 +245,8 @@ class WebActivity(activity.Activity):
         
         self._bm_store = bookmarklets.get_store()
         self._bm_store.connect('add_bookmarklet', self._add_bookmarklet_cb)
+        self._bm_store.connect('overwrite_bookmarklet',
+                               self._overwrite_bookmarklet_cb)
         for name in self._bm_store.list():
             self._add_bookmarklet(name)
 
@@ -496,7 +498,7 @@ class WebActivity(activity.Activity):
         return False
         
     def _add_bookmarklet(self, name):
-        '''add bookmarklet button and, if needed the toolbar'''
+        '''add bookmarklet button and, if needed, the toolbar'''
         if self._bm_toolbar is None:
             self._bm_toolbar = BookmarkletToolbar(self)
             self.toolbox.add_toolbar(_('Bookmarklets'), self._bm_toolbar)
@@ -513,6 +515,27 @@ class WebActivity(activity.Activity):
         bm.flash()
         
         self.toolbox.set_current_toolbar(_TOOLBAR_BOOKMARKLETS)
+
+    def _overwrite_bookmarklet_cb(self, store, name, url):
+        '''Ask for confirmation'''
+        alert = ConfirmationAlert()
+        alert.props.title = _('Add bookmarklet')
+        alert.props.msg = _('\'%s\' already exists. Overwrite?') % name
+        alert.connect('response', self._overwrite_bookmarklet_response_cb)
+        
+        # send the arguments through the alert
+        alert._bm = (name, url)
+        
+        self.add_alert(alert)
+                
+    def _overwrite_bookmarklet_response_cb(self, alert, response_id):
+        self.remove_alert(alert)
+        
+        name, url = alert._bm
+        
+        if response_id is gtk.RESPONSE_OK:
+            self._bm_store.remove(name)
+            self._bm_store.add(name, url)
 
     def _add_link(self):
         ''' take screenshot and add link info to the model '''
