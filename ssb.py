@@ -21,14 +21,34 @@ from sugar.bundle.activitybundle import ActivityBundle
 from sugar import profile
 # how about sugar.util.list_files ?
 
-import ConfigParser
 import shutil
 import os
 import tempfile
 import zipfile
+import ConfigParser
 import logging
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
+
+def copy_profile():
+    '''get the data from the bundle and into the profile'''
+    ssb_data_path = os.path.join(activity.get_bundle_path(), 'data/ssb_data')
+    data_path = os.path.join(activity.get_activity_root(), 'data')
+
+    logging.debug('***** %s %s' % (data_path, os.listdir(data_path)) )
+
+    if os.path.isdir(ssb_data_path):
+        # we can't use shutil.copytree for the entire dir
+        for i in os.listdir(ssb_data_path):
+            src = os.path.join(ssb_data_path, i)
+            dst = os.path.join(data_path, i)
+            if not os.path.exists(dst):
+                if os.path.isdir(src):
+                    shutil.copytree(src, dst)
+                else: # is there a better way?
+                    shutil.copy(src, dst)
+
+    logging.debug('***** %s %s' % (data_path, os.listdir(data_path)) )
 
 class SSBCreator(object):
     def __init__(self, title, uri):
@@ -43,8 +63,8 @@ class SSBCreator(object):
         self.ssb_path = os.path.join(self.temp_path, self.name + '.activity')
         
     def __del__(self):
-        '''clean up after ourselves'''
-        shutil.rmtree(self.temp_path)
+        '''clean up after ourselves, fail silently'''
+        shutil.rmtree(self.temp_path, ignore_errors=True)
         
     def change_info(self):
         '''change the .info file accordingly'''
@@ -69,6 +89,7 @@ class SSBCreator(object):
         f.close()
         
     def create(self):
+        '''actual creation'''
         # copy the bundle
         shutil.copytree(self.bundle_path, self.ssb_path)
         
@@ -83,8 +104,7 @@ class SSBCreator(object):
         f.write(self.uri)
         f.close()
 
-        
-        # copy profile
+        # save profile
         ssb_data_path = os.path.join(self.ssb_path, 'data/ssb_data')
         shutil.copytree(self.data_path, ssb_data_path)
                       
@@ -119,7 +139,7 @@ class SSBCreator(object):
         bundle = ActivityBundle(self.xo_path)
         bundle.install()
         
-    def send_to_journal(self):
+    def show_in_journal(self):
         '''send the generated .xo bundle to the journal'''
         # TODO: investigate sending the .xo to the journal
         jobject = datastore.create()
@@ -128,3 +148,5 @@ class SSBCreator(object):
         jobject.metadata['icon-color'] = profile.get_color().to_string()
         jobject.file_path = self.xo_path
         datastore.write(jobject)
+        
+        activity.show_object_in_journal(jobject.object_id) 

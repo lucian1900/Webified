@@ -29,15 +29,6 @@ import bookmarklets
 _TOOLBAR_BROWSE = 2
 _TOOLBAR_BOOKMARKLETS = 4
 
-def alert(activity, text):
-    from sugar.graphics.alert import NotifyAlert
-        
-    a = NotifyAlert()
-    a.props.title = 'DEBUG'
-    a.props.msg = str(text)
-    activity.add_alert(a)
-    a.show()
-
 class BookmarkletButton(ToolButton):
     def __init__(self, toolbar, name, uri):
         self._name = name
@@ -58,6 +49,8 @@ class BookmarkletButton(ToolButton):
         menu_item.connect('activate', self._remove_cb)
         palette.menu.append(menu_item)
         menu_item.show()
+        
+        self.show()
             
     def animate(self):          
         gobject.timeout_add(500, self.set_icon, 'bookmarklet-thick')
@@ -75,7 +68,6 @@ class BookmarkletButton(ToolButton):
         del self._toolbar.bookmarklets[self._name]        
         self.destroy()
         
-        #alert(self._activity, self._toolbar.bookmarklets)
         if len(self._toolbar.bookmarklets) == 0:
             self._toolbar.destroy()
         
@@ -86,15 +78,11 @@ class BookmarkletToolbar(gtk.Toolbar):
         self._activity = activity
         self._browser = self._activity._browser
 
-        self.store = bookmarklets.get_store()
-        
         self.bookmarklets = {}
             
     def _add_bookmarklet(self, name):
-        url = self.store.get(name)
-        bm = BookmarkletButton(self, name, url)
-        self.bookmarklets[name] = bm
-        bm.show()
+        url = bookmarklets.get_store().get(name)
+        self.bookmarklets[name] = BookmarkletButton(self, name, url)
         
     def destroy(self):
         self._activity.toolbox.remove_toolbar(_TOOLBAR_BOOKMARKLETS)

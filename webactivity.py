@@ -47,24 +47,9 @@ from sugar.graphics.alert import Alert
 from sugar.graphics.icon import Icon
 from sugar import mime
 
-# for SSBs, get the data from the bundle and into the profile
-ssb_data_path = os.path.join(activity.get_bundle_path(), 'data/ssb_data')
-data_path = os.path.join(activity.get_activity_root(), 'data')
-
-logging.debug('***** %s %s' % (data_path, os.listdir(data_path)) )
-
-if os.path.isdir(ssb_data_path):
-    # we can't use shutil.copytree for the entire dir
-    for i in os.listdir(ssb_data_path):
-        src = os.path.join(ssb_data_path, i)
-        dst = os.path.join(data_path, i)
-        if not os.path.exists(dst):
-            if os.path.isdir(src):
-                shutil.copytree(src, dst)
-            else: # is there a better way?
-                shutil.copy(src, dst)
-                
-logging.debug('***** %s %s' % (data_path, os.listdir(data_path)) )
+import ssb
+# get the profile saved in the ssb bundle
+ssb.copy_profile()
 
 PROFILE_VERSION = 1
 
@@ -179,7 +164,6 @@ from bookmarklettoolbar import BookmarkletToolbar
 import downloadmanager
 import globalhistory
 import filepicker
-import ssb
 import bookmarklets
 
 _LIBRARY_PATH = '/usr/share/library-common/index.html'

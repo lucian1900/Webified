@@ -28,7 +28,8 @@ from xpcom import components
 from sugar.datastore import datastore
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.menuitem import MenuItem
-from sugar.graphics.alert import NotifyAlert
+from sugar.graphics.alert import Alert
+from sugar.graphics.icon import Icon
 from sugar._sugarext import AddressEntry
 
 import filepicker
@@ -411,24 +412,7 @@ class WebToolbar(gtk.Toolbar):
     def _create_ssb_clicked_cb(self, button):
         title = self._activity.webtitle
         uri = self._activity.current
-        
-        # favicon code
-        # get nsIURI object
-        #cls = components.classes['@mozilla.org/network/io-service;1']
-        #io_service = cls.getService(interfaces.nsIIOService)
-        
-        #ns_uri = io_service.newURI(uri, None, None)
-        #logging.debug('***** %s' % ns_uri.spec)
-        
-        # get favicon
-        #cls = components.classes['@mozilla.org/browser/favicon-service;1']
-        #favicon_service = cls.getService(interfaces.nsIFaviconService)
-        
-        #img_uri = favicon_service.getFaviconImageForPage(ns_uri)
-        #logging.debug('***** %s' % img_uri.spec) 
-        
-        # xpcom.Exception: -2147221231
-        #favicon_service.getFaviconData(img_uri)
+        #favicon = self._activity.get_favicon()
 
         pattern = re.compile(r'''
                       (\w+)  # first word
@@ -445,23 +429,41 @@ class WebToolbar(gtk.Toolbar):
         else:
             name = first
 
-        ssb_creator = ssb.SSBCreator(name, uri)
+        self._ssb = ssb.SSBCreator(name, uri)
 
         # alert to show after creation
-        alert = NotifyAlert()
-        alert.props.title = _('SSB Creation')
+        alert = Alert()
+        alert.props.title = _('SSB Creation') 
+        
+        cancel_icon = Icon(icon_name='dialog-cancel') 
+        alert.add_button(gtk.RESPONSE_CANCEL, _('Cancel'), cancel_icon) 
+        cancel_icon.show()
+        
+        open_icon = Icon(icon_name='filesave') 
+        alert.add_button(gtk.RESPONSE_APPLY, _('Show in Journal'), open_icon) 
+        open_icon.show()
+        
+        ok_icon = Icon(icon_name='dialog-ok') 
+        alert.add_button(gtk.RESPONSE_OK, _('Install'), ok_icon) 
+        ok_icon.show()         
+           
+        self._activity.add_alert(alert) 
+        alert.connect('response', self._create_ssb_alert_cb)
 
         try:
-            ssb_creator.create()
+            self._ssb.create()
         except Exception, e:
             # DEBUG: alert shows exception message
             alert.props.msg = _('Failed: ') + str(e)
         else:
-            ssb_creator.install()
-            alert.props.msg = _('Done! You can start it from Home View.')
+            alert.props.msg = _('Done!')
         finally:
-            alert.connect('response', self._create_ssb_alert_response_cb)
-            self._activity.add_alert(alert)
+            alert.show()
         
-    def _create_ssb_alert_response_cb(self, alert, response_id):
+    def _create_ssb_alert_cb(self, alert, response_id):
+        if response_id is not gtk.RESPONSE_CANCEL:
+            if response_id is gtk.RESPONSE_APPLY:   
+                self._ssb.show_in_journal()
+            else:
+                self._ssb.install()
         self._activity.remove_alert(alert)
