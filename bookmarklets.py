@@ -66,24 +66,21 @@ class BookmarkletStore(gobject.GObject):
         
     def remove(self, name):
         self._config.remove_section(name)
-        #self.write()
+        self.write()
 
     def get(self, name):
         return self._config.get(name, 'url')
     
     def add(self, name, url):        
         if not self._config.has_section(name):
-            self._add(name, url)
+            self._config.add_section(name)
+            self._config.set(name, 'url', url) 
+            self.write()       
         elif self.get(name) != url:
             self.emit('overwrite_bookmarklet', name, url)
         
         # we don't care when the bookmarklet was added
         if self._config.has_section(name) and self.get(name) == url:
             self.emit('add_bookmarklet', name)
-                
-    def _add(self, name, url):
-        self._config.add_section(name)
-        self._config.set(name, 'url', url)
-        #self.write()
         
 

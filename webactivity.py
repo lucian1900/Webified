@@ -505,7 +505,7 @@ class WebActivity(activity.Activity):
             self._bm_toolbar.show()
         
         if name not in self._bm_toolbar.bookmarklets:
-            self._bm_toolbar._add_bookmarklet(name)
+            self._bm_toolbar.add_bookmarklet(name)
             
         return self._bm_toolbar.bookmarklets[name]
                 
