@@ -79,7 +79,7 @@ class BookmarkletStore(gobject.GObject):
         elif self.get(name) != url:
             self.emit('overwrite_bookmarklet', name, url)
         
-        # we don't care when the bookmarklet was added
+        # we don't care if the bookmarklet was added just now
         if self._config.has_section(name) and self.get(name) == url:
             self.emit('add_bookmarklet', name)
         

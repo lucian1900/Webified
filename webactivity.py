@@ -48,7 +48,7 @@ from sugar.graphics.icon import Icon
 from sugar import mime
 
 import ssb
-# get the profile saved in the ssb bundle
+# get the profile saved in the ssb bundle, if needed
 ssb.copy_profile()
 
 PROFILE_VERSION = 1
@@ -176,10 +176,7 @@ def _set_globals(bundle_id):
     PATH = '/' + bundle_id.replace('.', '/')
     
     global IS_SSB
-    if bundle_id.startswith(ssb.DOMAIN_PREFIX):
-        IS_SSB = True
-    else:
-        IS_SSB = False
+    IS_SSB = bundle_id.startswith(ssb.DOMAIN_PREFIX)
 
 from model import Model
 from sugar.presence.tubeconn import TubeConnection
@@ -233,7 +230,7 @@ class WebActivity(activity.Activity):
             
         self.set_toolbox(toolbox)
         toolbox.show()        
-        
+                
         self.set_canvas(self._browser)
         self._browser.show()
 
@@ -520,7 +517,7 @@ class WebActivity(activity.Activity):
         '''Ask for confirmation'''
         alert = ConfirmationAlert()
         alert.props.title = _('Add bookmarklet')
-        alert.props.msg = _('\'%s\' already exists. Overwrite?') % name
+        alert.props.msg = _('"%s" already exists. Overwrite?') % name
         alert.connect('response', self._overwrite_bookmarklet_response_cb)
         
         # send the arguments through the alert

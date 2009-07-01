@@ -114,7 +114,7 @@ class LinkPalette(Palette):
             self.menu.append(menu_item)
             menu_item.show()
         else:
-            # if the link isn't a bookmarklet
+            # for all other links
             menu_item = MenuItem(_('Download link'))
             menu_item.connect('activate', self.__download_activate_cb)
             self.menu.append(menu_item)

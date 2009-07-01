@@ -35,8 +35,6 @@ def copy_profile():
     ssb_data_path = os.path.join(activity.get_bundle_path(), 'data/ssb_data')
     data_path = os.path.join(activity.get_activity_root(), 'data')
 
-    logging.debug('***** %s %s' % (data_path, os.listdir(data_path)) )
-
     if os.path.isdir(ssb_data_path):
         # we can't use shutil.copytree for the entire dir
         for i in os.listdir(ssb_data_path):
@@ -47,8 +45,6 @@ def copy_profile():
                     shutil.copytree(src, dst)
                 else: # is there a better way?
                     shutil.copy(src, dst)
-
-    logging.debug('***** %s %s' % (data_path, os.listdir(data_path)) )
 
 class SSBCreator(object):
     def __init__(self, title, uri):
@@ -83,7 +79,7 @@ class SSBCreator(object):
         config.set('Activity', 'bundle_id', self.bundle_id)
         config.set('Activity', 'icon', 'activity-ssb')
 
-        # 'commit' the changes
+        # write the changes
         f = open(path, 'w')
         config.write(f)
         f.close()
