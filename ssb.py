@@ -14,21 +14,40 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-from sugar.activity import activity
-from sugar.datastore import datastore
-from sugar.activity import bundlebuilder as bb
-from sugar.bundle.activitybundle import ActivityBundle
-from sugar import profile
-# how about sugar.util.list_files ?
-
 import shutil
 import os
 import tempfile
 import zipfile
 import ConfigParser
 import logging
+import functools
+
+from sugar.activity import activity
+from sugar.activity import bundlebuilder
+from sugar.bundle.activitybundle import ActivityBundle
+from sugar.datastore import datastore
+from sugar import profile
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
+
+# freeze some arguments, equivalent to def list_files(path): ...
+list_files = functools.partial(bundlebuilder.list_files,
+                ignore_dirs=bundlebuilder.IGNORE_DIRS, 
+                ignore_files=bundlebuilder.IGNORE_FILES.append('.DS_STORE'))
+
+def remove_paths(paths, root=None):
+    '''remove all paths in the list, fail silently'''
+    if root is not None:
+        paths = [os.path.join(root, i) for i in paths]
+    
+    for path in paths:
+        try:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+        except OSError:
+            logging.warning('failed to remove: ' + path)
 
 def copy_profile():
     '''get the data from the bundle and into the profile'''
@@ -100,18 +119,16 @@ class SSBCreator(object):
         f.write(self.uri)
         f.close()
 
-        # save profile
+        # copy profile
         ssb_data_path = os.path.join(self.ssb_path, 'data/ssb_data')
         shutil.copytree(self.data_path, ssb_data_path)
                       
-        # delete gecko caches
-        shutil.rmtree(os.path.join(ssb_data_path, 'gecko/Cache'))
-
+        # delete undesirable things from the profile
+        remove_paths(['Cache', 'cookies.sqlite'],
+                     root=os.path.join(ssb_data_path, 'gecko'))
 
         # create MANIFEST
-        files = bb.list_files(self.ssb_path, ignore_dirs=bb.IGNORE_DIRS, 
-                              ignore_files=bb.IGNORE_FILES)
-
+        files = list_files(self.ssb_path)
         f = open(os.path.join(self.ssb_path, 'MANIFEST'), 'w')
         for i in files:
             f.write(i+'\n')
