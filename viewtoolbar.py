@@ -66,9 +66,9 @@ class ViewToolbar(gtk.Toolbar):
         self.editor.show()
         
     def __editor_clicked_cb(self, button):
-        from usercode import TextEditor
+        from usercode import StyleEditor
         
-        editor = TextEditor()
+        editor = StyleEditor()
         editor.show()
         
         editor.text = '2'
