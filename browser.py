@@ -115,19 +115,21 @@ class Browser(WebView):
         io_service2.manageOfflineStatus = False
 
         cls = components.classes['@mozilla.org/content/style-sheet-service;1']
-        style_sheet_service = cls.getService(interfaces.nsIStyleSheetService)
+        self.style_sheet_service = cls.getService(
+                                            interfaces.nsIStyleSheetService)
 
         if os.path.exists(Browser.AGENT_SHEET):
             agent_sheet_uri = io_service.newURI('file:///' + 
                                                 Browser.AGENT_SHEET,
                                                 None, None)
-            style_sheet_service.loadAndRegisterSheet(agent_sheet_uri,
+            self.style_sheet_service.loadAndRegisterSheet(agent_sheet_uri,
                     interfaces.nsIStyleSheetService.AGENT_SHEET)
 
         if os.path.exists(Browser.USER_SHEET):
-            user_sheet_uri = io_service.newURI('file:///' + Browser.USER_SHEET,
+            self.user_sheet_uri = io_service.newURI('file:///' + 
+                                               Browser.USER_SHEET,
                                                None, None)
-            style_sheet_service.loadAndRegisterSheet(user_sheet_uri,
+            self.style_sheet_service.loadAndRegisterSheet(self.user_sheet_uri,
                     interfaces.nsIStyleSheetService.USER_SHEET)
                     
     def do_setup(self):
@@ -154,6 +156,14 @@ class Browser(WebView):
 
     def set_session(self, data):
         return sessionstore.set_session(self, data)
+        
+    def update_userstyle(self):
+        if self.style_sheet_service.sheetRegistered(self.user_sheet_uri,
+                interfaces.nsIStyleSheetService.USER_SHEET):
+            self.style_sheet_service.unregisterSheet(self.user_sheet_uri,
+                    interfaces.nsIStyleSheetService.USER_SHEET)
+            self.style_sheet_service.loadAndRegisterSheet(self.user_sheet_uri,
+                    interfaces.nsIStyleSheetService.USER_SHEET)
 
     def get_source(self, async_cb, async_err_cb):
         cls = components.classes[ \

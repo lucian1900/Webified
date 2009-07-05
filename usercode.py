@@ -113,6 +113,11 @@ class TextEditor(gtk.Window):
 
 
 class StyleEditor(TextEditor):
+    __gsignals__ = {
+        'userstyle-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                             ([])),
+    }
+    
     def __init__(self):
         TextEditor.__init__(self, mime_type='text/css')
 
@@ -130,6 +135,8 @@ class StyleEditor(TextEditor):
         f = open(self.css_path, 'w')
         f.write(self.text)
         f.close()
+        
+        self.emit('userstyle-changed')
         
         self.destroy()
 

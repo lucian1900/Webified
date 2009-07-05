@@ -118,7 +118,13 @@ class EditToolbar(activity.EditToolbar):
         from usercode import StyleEditor, TextEditor
 
         editor = StyleEditor()
+        
+        editor.connect('userstyle-changed', self.__update_userstyle_cb)
+        
         editor.show()
+        
+    def __update_userstyle_cb(self, editor):
+        self._browser.update_userstyle()
 
     def __undo_cb(self, button):
         command_manager = self._get_command_manager()
