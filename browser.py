@@ -39,6 +39,7 @@ import sessionstore
 from palettes import ContentInvoker
 from sessionhistory import HistoryListener
 from progresslistener import ProgressListener
+from usercode import ScriptListener
 
 _ZOOM_AMOUNT = 0.1
 
@@ -97,6 +98,7 @@ class Browser(WebView):
         
         self.history = HistoryListener()
         self.progress = ProgressListener()
+        self.userscript = ScriptListener()
 
         cls = components.classes["@mozilla.org/typeaheadfind;1"]
         self.typeahead = cls.createInstance(interfaces.nsITypeAheadFind)
@@ -142,9 +144,11 @@ class Browser(WebView):
         self.progress.setup(self)
 
         self.history.setup(self.web_navigation)
+        
+        self.userscript.setup(self)
 
         self.typeahead.init(self.doc_shell)
-
+        
     def get_session(self):
         return sessionstore.get_session(self)
 

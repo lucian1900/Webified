@@ -58,20 +58,6 @@ class ViewToolbar(gtk.Toolbar):
         self.traybutton.props.sensitive = False
         self.insert(self.traybutton, -1)
         self.traybutton.show()
-        
-        self.editor = ToolButton('editor')
-        self.editor.set_tooltip('editor')
-        self.editor.connect('clicked', self.__editor_clicked_cb)
-        self.insert(self.editor, -1)
-        self.editor.show()
-        
-    def __editor_clicked_cb(self, button):
-        from usercode import StyleEditor
-        
-        editor = StyleEditor()
-        editor.show()
-        
-        editor.text = '2'
                 
     def __zoomin_clicked_cb(self, button):
         self._browser.zoom_in()

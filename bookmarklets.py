@@ -43,7 +43,7 @@ class BookmarkletStore(gobject.GObject):
         self._config = ConfigParser.RawConfigParser()
         self.config_path = activity.get_activity_root()
         self.config_path = os.path.join(self.config_path,
-                                        'data/bookmarklets.info')
+                                        'data/bookmarklets.ini')
         self._config.read(self.config_path)
 
     def __del__(self):

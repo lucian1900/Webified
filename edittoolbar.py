@@ -25,6 +25,8 @@ from sugar.graphics import iconentry
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics import style
 
+import usercode
+
 class EditToolbar(activity.EditToolbar):
 
     _com_interfaces_ = interfaces.nsIObserver
@@ -33,6 +35,7 @@ class EditToolbar(activity.EditToolbar):
         activity.EditToolbar.__init__(self)
 
         self._browser = browser
+        self._style_store = usercode.get_style_store()
 
         self.undo.connect('clicked', self.__undo_cb)
         self.redo.connect('clicked', self.__redo_cb)
@@ -99,6 +102,24 @@ class EditToolbar(activity.EditToolbar):
         self._next.connect('clicked', self.__find_next_cb)
         self.insert(self._next, -1)
         self._next.show()
+        
+        separator = gtk.SeparatorToolItem()
+        separator.set_draw(False)
+        separator.set_expand(True)
+        self.insert(separator, -1)
+        separator.show()
+        
+        self.edit_userstyle = ToolButton('edit-userstyle')
+        self.edit_userstyle.set_tooltip('Edit user CSS')
+        self.edit_userstyle.connect('clicked', self.__edit_userstyle_cb)
+        self.insert(self.edit_userstyle, -1)
+        self.edit_userstyle.show()
+
+    def __edit_userstyle_cb(self, button):
+        from usercode import StyleEditor
+
+        editor = StyleEditor()
+        editor.show()
 
     def __undo_cb(self, button):
         command_manager = self._get_command_manager()

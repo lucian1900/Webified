@@ -168,15 +168,12 @@ import bookmarklets
 
 _LIBRARY_PATH = '/usr/share/library-common/index.html'
 
-def _set_globals(bundle_id):
-    '''Set up the dbus strings and IS_SSB'''
+def _set_dbus_globals(bundle_id):
+    '''Set up the dbus strings, based on the bundle_id'''
     global SERVICE, IFACE, PATH
     SERVICE = bundle_id
     IFACE = bundle_id
     PATH = '/' + bundle_id.replace('.', '/')
-    
-    global IS_SSB
-    IS_SSB = bundle_id.startswith(ssb.DOMAIN_PREFIX)
 
 from model import Model
 from sugar.presence.tubeconn import TubeConnection
@@ -194,12 +191,15 @@ class WebActivity(activity.Activity):
         activity.Activity.__init__(self, handle)
 
         _logger.debug('Starting the web activity')
+        
+        # figure out if we're an SSB
+        self.is_ssb = ssb.get_is_ssb(self)
 
         self._browser = Browser()
-
+        
         _set_accept_languages()
         _seed_xs_cookie()
-        _set_globals(self.get_bundle_id())        
+        _set_dbus_globals(self.get_bundle_id())        
                 
         # don't pick up the sugar theme - use the native mozilla one instead
         cls = components.classes['@mozilla.org/preferences-service;1']
@@ -256,12 +256,16 @@ class WebActivity(activity.Activity):
                      
         self.toolbox.set_current_toolbar(_TOOLBAR_BROWSE)
                 
-        if IS_SSB:
+        if self.is_ssb:
             # set permanent homepage for SSBs
             f = open(os.path.join(activity.get_bundle_path(),
                                   'data/homepage'))
             self.homepage = f.read()
-            f.close()                
+            f.close()            
+            
+        # enable userscript saving
+        self._browser.userscript.connect('userscript-found',
+                                        self._userscript_found_cb)    
 
         if handle.uri:
             self._browser.load_uri(handle.uri)        
@@ -395,7 +399,7 @@ class WebActivity(activity.Activity):
 
              
     def _load_homepage(self):
-        if IS_SSB:
+        if self.is_ssb:
             self._browser.load_uri(self.homepage)
         elif os.path.isfile(_LIBRARY_PATH):
             self._browser.load_uri('file://' + _LIBRARY_PATH)
@@ -529,10 +533,22 @@ class WebActivity(activity.Activity):
         self.remove_alert(alert)
         
         name, url = alert._bm
-        
         if response_id is gtk.RESPONSE_OK:
             self._bm_store.remove(name)
             self._bm_store.add(name, url)
+            
+    def _userscript_found_cb(self, listener):
+        alert = ConfirmationAlert()
+        alert.props.title = _('Add userscript')
+        alert.props.msg = _('Do you want to add this userscript?')
+        alert.connect('response', self._userscript_found_response_cb)
+        self.add_alert(alert)
+        
+    def _userscript_found_response_cb(self, alert, response_id):
+        self.remove_alert(alert)
+        
+        if response_id is gtk.RESPONSE_OK:
+            pass
 
     def _add_link(self):
         ''' take screenshot and add link info to the model '''

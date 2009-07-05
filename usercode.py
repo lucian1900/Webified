@@ -1,4 +1,4 @@
-# Copyright (C) 2007, One Laptop Per Child
+# Copyright (C) 2009, Lucian Branescu Mihaila
 #
 # This program is free software; you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -17,11 +17,18 @@
 import os
 import logging
 
+import gobject
 import gtk
 import pango
 import gtksourceview2
 
+import xpcom
+from xpcom.components import interfaces
+
 from sugar.graphics import style
+from sugar.activity import activity
+    
+_style_store = None
 
 class TextEditor(gtk.Window):
     def __init__(self, mime_type='text/html', width=None, height=None):
@@ -29,8 +36,8 @@ class TextEditor(gtk.Window):
         self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
         
         self.mime_type = mime_type
-        self.width = int(gtk.gdk.screen_width()/2)
-        self.height = int(gtk.gdk.screen_height()/1.5)
+        self.width = width or int(gtk.gdk.screen_width()/2)
+        self.height = height or int(gtk.gdk.screen_height()/1.5)
         
         self.buffer = gtksourceview2.Buffer()
         lang_manager = gtksourceview2.language_manager_get_default()
@@ -49,7 +56,6 @@ class TextEditor(gtk.Window):
         else:
             self.buffer.set_highlight_syntax(True)
 
-        # The GTK source view window
         self.view = gtksourceview2.View(self.buffer)
         self.view.set_size_request(self.width, self.height)
         self.view.set_editable(True)
@@ -70,6 +76,69 @@ class TextEditor(gtk.Window):
         self.show_all()
         gtk.Window.show(self)
         
+    def get_text(self):
+        return self.buffer.get_text()
+        
+    def set_text(self, text):
+        self.buffer.set_text(text)
+        
+    text = property(get_text, set_text)
+    
+
+def get_style_store():
+    global _style_store
+    if _style_store == None:
+        _style_store = StyleStore()
+    return _style_store
+
+class StyleStore(object):
+    def __init__(self):
+        self.css_path = os.path.join(activity.get_activity_root(),
+                                     'data/style.user.css')
+
+    def get_css(self):
+        if not os.path.isfile(self.css_path):
+            return ''
+
+        f = open(self.css_path, 'r')
+        css = f.read()
+        f.close()
+
+        return css
+
+    def set_css(text):
+        f = open(self.css_path, 'w')
+        f.write(text)
+        f.close()
+
+    css = property(get_css, set_css)
+
+
 class StyleEditor(TextEditor):
     def __init__(self):
         TextEditor.__init__(self, mime_type='text/css')
+
+        self.text = get_style_store().css
+
+        
+class ScriptListener(gobject.GObject):
+    _com_interfaces_ = interfaces.nsIWebProgressListener
+
+    __gsignals__ = {
+        'userscript-found': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                             ([])),
+    }
+
+    def __init__(self):
+        gobject.GObject.__init__(self)
+
+        self._wrapped_self = xpcom.server.WrapObject( \
+                self, interfaces.nsIWebProgressListener)
+
+    def onLocationChange(self, webProgress, request, location):
+        if location.spec.endswith('.user.js'):
+            self.emit('userscript-found')
+
+    def setup(self, browser):
+        browser.web_progress.addProgressListener(self._wrapped_self, 
+                                interfaces.nsIWebProgress.NOTIFY_LOCATION)

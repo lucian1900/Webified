@@ -30,6 +30,10 @@ from sugar import profile
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
 
+def get_is_ssb(activity):
+    '''determine if the activity is an SSB'''
+    return activity.get_bundle_id().startswith(DOMAIN_PREFIX)
+
 # freeze some arguments, equivalent to def list_files(path): ...
 list_files = functools.partial(bundlebuilder.list_files,
                 ignore_dirs=bundlebuilder.IGNORE_DIRS, 
