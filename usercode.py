@@ -121,7 +121,10 @@ class StyleEditor(TextEditor):
                                      
         self._save_button.connect('clicked', self._save_button_cb)
         
-        self.load()
+        if os.path.isfile(self.css_path):
+            f = open(self.css_path, 'r')
+            self.text = f.read()
+            f.close()
         
     def _save_button_cb(self, button):
         f = open(self.css_path, 'w')
@@ -129,12 +132,6 @@ class StyleEditor(TextEditor):
         f.close()
         
         self.destroy()
-        
-    def load(self):
-        if os.path.isfile(self.css_path):
-            f = open(self.css_path, 'r')
-            self.text = f.read()
-            f.close()
 
         
 class ScriptListener(gobject.GObject):

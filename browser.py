@@ -90,8 +90,8 @@ class Browser(WebView):
 
     AGENT_SHEET = os.path.join(activity.get_bundle_path(), 
                                'agent-stylesheet.css')
-    USER_SHEET = os.path.join(env.get_profile_path(), 'gecko', 
-                              'user-stylesheet.css')
+    USER_SHEET = os.path.join(activity.get_activity_root(),
+                              'data/style.user.css')
 
     def __init__(self):
         WebView.__init__(self)
@@ -129,7 +129,7 @@ class Browser(WebView):
                                                None, None)
             style_sheet_service.loadAndRegisterSheet(user_sheet_uri,
                     interfaces.nsIStyleSheetService.USER_SHEET)
-
+                    
     def do_setup(self):
         WebView.do_setup(self)
 
