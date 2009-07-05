@@ -35,7 +35,6 @@ class EditToolbar(activity.EditToolbar):
         activity.EditToolbar.__init__(self)
 
         self._browser = browser
-        self._style_store = usercode.get_style_store()
 
         self.undo.connect('clicked', self.__undo_cb)
         self.redo.connect('clicked', self.__redo_cb)
@@ -116,7 +115,7 @@ class EditToolbar(activity.EditToolbar):
         self.edit_userstyle.show()
 
     def __edit_userstyle_cb(self, button):
-        from usercode import StyleEditor
+        from usercode import StyleEditor, TextEditor
 
         editor = StyleEditor()
         editor.show()

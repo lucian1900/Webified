@@ -16,6 +16,7 @@
 
 import os
 import logging
+from gettext import gettext as _
 
 import gobject
 import gtk
@@ -25,10 +26,10 @@ import gtksourceview2
 import xpcom
 from xpcom.components import interfaces
 
-from sugar.graphics import style
 from sugar.activity import activity
-    
-_style_store = None
+from sugar.graphics import style
+from sugar.graphics.icon import Icon
+
 
 class TextEditor(gtk.Window):
     def __init__(self, mime_type='text/html', width=None, height=None):
@@ -39,6 +40,12 @@ class TextEditor(gtk.Window):
         self.width = width or int(gtk.gdk.screen_width()/2)
         self.height = height or int(gtk.gdk.screen_height()/1.5)
         
+        # layout
+        vbox = gtk.VBox()
+        editorbox = gtk.HBox()
+        buttonbox = gtk.HBox()
+        
+        # editor buffer
         self.buffer = gtksourceview2.Buffer()
         lang_manager = gtksourceview2.language_manager_get_default()
         if hasattr(lang_manager, 'list_languages'):
@@ -56,6 +63,7 @@ class TextEditor(gtk.Window):
         else:
             self.buffer.set_highlight_syntax(True)
 
+        # editor view
         self.view = gtksourceview2.View(self.buffer)
         self.view.set_size_request(self.width, self.height)
         self.view.set_editable(True)
@@ -69,56 +77,64 @@ class TextEditor(gtk.Window):
         codesw = gtk.ScrolledWindow()
         codesw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
         codesw.add(self.view)
-
-        self.add(codesw)
-            
+        editorbox.pack_start(codesw)
+        
+        vbox.pack_start(editorbox)
+        
+        # buttons
+        self._cancel_button = gtk.Button(label=_('Cancel'))
+        self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
+        self._cancel_button.connect('clicked', self._cancel_button_cb)
+        buttonbox.pack_start(self._cancel_button)
+        
+        self._save_button = gtk.Button(label=_('Save'))
+        self._save_button.set_image(Icon(icon_name='dialog-ok'))
+        buttonbox.pack_start(self._save_button)
+        
+        vbox.pack_start(buttonbox)
+        self.add(vbox)
+        
+    def _cancel_button_cb(self, button):
+        self.destroy()
+    
     def show(self):
         self.show_all()
         gtk.Window.show(self)
         
     def get_text(self):
-        return self.buffer.get_text()
+        end = self.buffer.get_end_iter()
+        start = self.buffer.get_start_iter()
+        return self.buffer.get_text(start, end)
         
     def set_text(self, text):
         self.buffer.set_text(text)
         
     text = property(get_text, set_text)
-    
-
-def get_style_store():
-    global _style_store
-    if _style_store == None:
-        _style_store = StyleStore()
-    return _style_store
-
-class StyleStore(object):
-    def __init__(self):
-        self.css_path = os.path.join(activity.get_activity_root(),
-                                     'data/style.user.css')
-
-    def get_css(self):
-        if not os.path.isfile(self.css_path):
-            return ''
-
-        f = open(self.css_path, 'r')
-        css = f.read()
-        f.close()
-
-        return css
-
-    def set_css(text):
-        f = open(self.css_path, 'w')
-        f.write(text)
-        f.close()
-
-    css = property(get_css, set_css)
 
 
 class StyleEditor(TextEditor):
     def __init__(self):
         TextEditor.__init__(self, mime_type='text/css')
 
-        self.text = get_style_store().css
+        self.css_path = os.path.join(activity.get_activity_root(),
+                                     'data/style.user.css')
+                                     
+        self._save_button.connect('clicked', self._save_button_cb)
+        
+        self.load()
+        
+    def _save_button_cb(self, button):
+        f = open(self.css_path, 'w')
+        f.write(self.text)
+        f.close()
+        
+        self.destroy()
+        
+    def load(self):
+        if os.path.isfile(self.css_path):
+            f = open(self.css_path, 'r')
+            self.text = f.read()
+            f.close()
 
         
 class ScriptListener(gobject.GObject):
