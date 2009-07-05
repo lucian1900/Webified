@@ -64,22 +64,23 @@ class TextEditor(gtk.Window):
             self.buffer.set_highlight_syntax(True)
 
         # editor view
-        self.view = gtksourceview2.View(self.buffer)
-        self.view.set_size_request(self.width, self.height)
-        self.view.set_editable(True)
-        self.view.set_cursor_visible(True)
-        self.view.set_show_line_numbers(True)
-        self.view.set_wrap_mode(gtk.WRAP_CHAR)
-        self.view.set_auto_indent(True)
-        self.view.modify_font(pango.FontDescription("Monospace " +
+        view = gtksourceview2.View(self.buffer)
+        view.set_size_request(self.width, self.height)
+        view.set_editable(True)
+        view.set_cursor_visible(True)
+        view.set_show_line_numbers(True)
+        view.set_wrap_mode(gtk.WRAP_CHAR)
+        view.set_auto_indent(True)
+        view.modify_font(pango.FontDescription("Monospace " +
                               str(style.FONT_SIZE)))
 
         codesw = gtk.ScrolledWindow()
         codesw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        codesw.add(self.view)
-        editorbox.pack_start(codesw)
+        codesw.add(view)
+        #editorbox.pack_start(codesw)
         
-        vbox.pack_start(editorbox)
+        #vbox.pack_start(editorbox)
+        vbox.pack_start(codesw)
         
         # buttons
         self._cancel_button = gtk.Button(label=_('Cancel'))
@@ -140,6 +141,24 @@ class StyleEditor(TextEditor):
         
         self.destroy()
 
+# TODO support multiple userscripts
+class ScriptEditor(TextEditor):
+    __gsignals__ = {
+        'inject-script': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                             ([str])),
+    }
+    def __init__(self):
+        TextEditor.__init__(self, mime_type='text/javascript')
+        
+        self.script_path = os.path.join(activity.get_activity_root(),
+                                        'data/script.user.js')
+                                        
+        self._save_button.connect('clicked', self._save_button_cb)
+        
+    def _save_button_cb(self, button):
+        self.emit('inject-script', self.text)
+        
+        self.destroy()
         
 class ScriptListener(gobject.GObject):
     _com_interfaces_ = interfaces.nsIWebProgressListener
