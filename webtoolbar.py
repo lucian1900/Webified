@@ -16,6 +16,8 @@
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
 from gettext import gettext as _
+import re
+import logging
 
 import gobject
 import gtk
@@ -23,12 +25,16 @@ import pango
 from xpcom.components import interfaces
 from xpcom import components
 
+from sugar.datastore import datastore
 from sugar.graphics.toolbutton import ToolButton
 from sugar.graphics.menuitem import MenuItem
+from sugar.graphics.alert import Alert
+from sugar.graphics.icon import Icon
 from sugar._sugarext import AddressEntry
 
 import filepicker
 import places
+import ssb
 
 _MAX_HISTORY_ENTRIES = 15
 
@@ -220,10 +226,11 @@ class WebToolbar(gtk.Toolbar):
                      ([]))
     }
 
-    def __init__(self, browser):
+    def __init__(self, activity):
         gtk.Toolbar.__init__(self)
 
-        self._browser = browser
+        self._activity = activity
+        self._browser = activity._browser
         
         self._loading = False
 
@@ -263,7 +270,7 @@ class WebToolbar(gtk.Toolbar):
         self.insert(self._link_add, -1)
         self._link_add.show()
         
-        progress_listener = browser.progress
+        progress_listener = self._browser.progress
         progress_listener.connect('location-changed', 
                                   self._location_changed_cb)
         progress_listener.connect('loading-start', self._loading_start_cb)
@@ -275,6 +282,12 @@ class WebToolbar(gtk.Toolbar):
                                       self._session_history_changed_cb)
 
         self._browser.connect("notify::title", self._title_changed_cb)
+
+        self._create_ssb = ToolButton('activity-ssb')
+        self._create_ssb.set_tooltip(_('Create SSB'))
+        self._create_ssb.connect('clicked', self._create_ssb_clicked_cb)
+        self.insert(self._create_ssb, -1)
+        self._create_ssb.show()
 
     def _session_history_changed_cb(self, session_history, current_page_index):
         # We have to wait until the history info is updated.
@@ -396,3 +409,62 @@ class WebToolbar(gtk.Toolbar):
     def _link_add_clicked_cb(self, button):
         self.emit('add-link')
 
+    def _create_ssb_clicked_cb(self, button):
+        title = self._activity.webtitle
+        uri = self._activity.current
+        #favicon = self._activity.get_favicon()
+
+        pattern = re.compile(r'''
+                      (\w+)  # first word
+                      [ _-]* # any amount and type of spacing
+                      (\w+)? # second word, may be absent
+                  ''', re.VERBOSE)
+        first, second = re.search(pattern, title).groups()
+
+        # CamelCase the two words
+        first = first.capitalize()
+        if second is not None:
+            second = second.capitalize()
+            name = first + ' ' + second
+        else:
+            name = first
+
+        self._ssb = ssb.SSBCreator(name, uri)
+
+        # alert to show after creation
+        alert = Alert()
+        alert.props.title = _('SSB Creation') 
+        
+        cancel_icon = Icon(icon_name='dialog-cancel') 
+        alert.add_button(gtk.RESPONSE_CANCEL, _('Cancel'), cancel_icon) 
+        cancel_icon.show()
+        
+        open_icon = Icon(icon_name='filesave') 
+        alert.add_button(gtk.RESPONSE_APPLY, _('Show in Journal'), open_icon) 
+        open_icon.show()
+        
+        ok_icon = Icon(icon_name='dialog-ok') 
+        alert.add_button(gtk.RESPONSE_OK, _('Install'), ok_icon) 
+        ok_icon.show()
+           
+        self._activity.add_alert(alert) 
+        alert.connect('response', self._create_ssb_alert_cb)
+
+        try:
+            self._ssb.create()
+        except Exception, e:
+            # DEBUG: alert shows exception message
+            alert.props.msg = _('Failed: ') + str(e)
+        else:
+            alert.props.msg = _('Done!')
+        finally:
+            alert.show()
+        
+    def _create_ssb_alert_cb(self, alert, response_id):
+        self._activity.remove_alert(alert)
+        
+        if response_id is not gtk.RESPONSE_CANCEL:
+            if response_id is gtk.RESPONSE_APPLY:   
+                self._ssb.show_in_journal()
+            else:
+                self._ssb.install()

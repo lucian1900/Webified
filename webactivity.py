@@ -30,6 +30,7 @@ import shutil
 import sqlite3
 import cjson
 import gconf
+import shutil
 
 # HACK: Needed by http://dev.sugarlabs.org/ticket/456
 import gnome
@@ -42,9 +43,13 @@ import telepathy.client
 from sugar.presence import presenceservice
 from sugar.graphics.tray import HTray
 from sugar import profile
-from sugar.graphics.alert import Alert
+from sugar.graphics.alert import Alert, ConfirmationAlert
 from sugar.graphics.icon import Icon
 from sugar import mime
+
+import ssb
+# get the profile saved in the ssb bundle, if needed
+ssb.copy_profile()
 
 PROFILE_VERSION = 1
 
@@ -124,7 +129,6 @@ def _seed_xs_cookie():
     else:
         _logger.debug('seed_xs_cookie: Updated cookie successfully')
 
-
 import hulahop
 hulahop.set_app_version(os.environ['SUGAR_BUNDLE_VERSION'])
 hulahop.startup(_profile_path)
@@ -156,23 +160,29 @@ from browser import Browser
 from edittoolbar import EditToolbar
 from webtoolbar import WebToolbar
 from viewtoolbar import ViewToolbar
+from bookmarklettoolbar import BookmarkletToolbar
 import downloadmanager
 import globalhistory
 import filepicker
+import bookmarklets
 
 _LIBRARY_PATH = '/usr/share/library-common/index.html'
+
+def _set_dbus_globals(bundle_id):
+    '''Set up the dbus strings, based on the bundle_id'''
+    global SERVICE, IFACE, PATH
+    SERVICE = bundle_id
+    IFACE = bundle_id
+    PATH = '/' + bundle_id.replace('.', '/')
 
 from model import Model
 from sugar.presence.tubeconn import TubeConnection
 from messenger import Messenger
 from linkbutton import LinkButton
 
-SERVICE = "org.laptop.WebActivity"
-IFACE = SERVICE
-PATH = "/org/laptop/WebActivity"
-
 _TOOLBAR_EDIT = 1
 _TOOLBAR_BROWSE = 2
+_TOOLBAR_BOOKMARKLETS = 4
 
 _logger = logging.getLogger('web-activity')
 
@@ -181,12 +191,16 @@ class WebActivity(activity.Activity):
         activity.Activity.__init__(self, handle)
 
         _logger.debug('Starting the web activity')
+        
+        # figure out if we're an SSB
+        self.is_ssb = ssb.get_is_ssb(self)
 
         self._browser = Browser()
-
+        
         _set_accept_languages()
         _seed_xs_cookie()
-        
+        _set_dbus_globals(self.get_bundle_id())        
+                
         # don't pick up the sugar theme - use the native mozilla one instead
         cls = components.classes['@mozilla.org/preferences-service;1']
         pref_service = cls.getService(components.interfaces.nsIPrefService)
@@ -199,7 +213,7 @@ class WebActivity(activity.Activity):
         toolbox.add_toolbar(_('Edit'), self._edit_toolbar)
         self._edit_toolbar.show()
 
-        self._web_toolbar = WebToolbar(self._browser)
+        self._web_toolbar = WebToolbar(self)
         toolbox.add_toolbar(_('Browse'), self._web_toolbar)
         self._web_toolbar.show()
        
@@ -210,18 +224,28 @@ class WebActivity(activity.Activity):
         self._view_toolbar = ViewToolbar(self)
         toolbox.add_toolbar(_('View'), self._view_toolbar)
         self._view_toolbar.show()
-
+        
+        # the bookmarklet bar doesn't show up if empty
+        self._bm_toolbar = None
+            
         self.set_toolbox(toolbox)
-        toolbox.show()
-
+        toolbox.show()        
+                
         self.set_canvas(self._browser)
         self._browser.show()
-                 
+
         self._browser.history.connect('session-link-changed', 
                                       self._session_history_changed_cb)
         self._web_toolbar.connect('add-link', self._link_add_button_cb)
 
         self._browser.connect("notify::title", self._title_changed_cb)
+        
+        self._bm_store = bookmarklets.get_store()
+        self._bm_store.connect('add_bookmarklet', self._add_bookmarklet_cb)
+        self._bm_store.connect('overwrite_bookmarklet',
+                               self._overwrite_bookmarklet_cb)
+        for name in self._bm_store.list():
+            self._add_bookmarklet(name)
 
         self.model = Model()
         self.model.connect('add_link', self._add_link_model_cb)
@@ -231,7 +255,18 @@ class WebActivity(activity.Activity):
         self.connect('key-press-event', self._key_press_cb)
                      
         self.toolbox.set_current_toolbar(_TOOLBAR_BROWSE)
-        
+                
+        if self.is_ssb:
+            # set permanent homepage for SSBs
+            f = open(os.path.join(activity.get_bundle_path(),
+                                  'data/homepage'))
+            self.homepage = f.read()
+            f.close()            
+            
+        # enable userscript saving
+        self._browser.userscript.connect('userscript-found',
+                                        self._userscript_found_cb)    
+
         if handle.uri:
             self._browser.load_uri(handle.uri)        
         elif not self._jobject.file_path:
@@ -364,7 +399,9 @@ class WebActivity(activity.Activity):
 
              
     def _load_homepage(self):
-        if os.path.isfile(_LIBRARY_PATH):
+        if self.is_ssb:
+            self._browser.load_uri(self.homepage)
+        elif os.path.isfile(_LIBRARY_PATH):
             self._browser.load_uri('file://' + _LIBRARY_PATH)
         else:
             default_page = os.path.join(activity.get_bundle_path(), 
@@ -460,6 +497,58 @@ class WebActivity(activity.Activity):
                 self._browser.zoom_in()
                 return True
         return False
+        
+    def _add_bookmarklet(self, name):
+        '''add bookmarklet button and, if needed, the toolbar'''
+        if self._bm_toolbar is None:
+            self._bm_toolbar = BookmarkletToolbar(self)
+            self.toolbox.add_toolbar(_('Bookmarklets'), self._bm_toolbar)
+            self._bm_toolbar.show()
+        
+        if name not in self._bm_toolbar.bookmarklets:
+            self._bm_toolbar.add_bookmarklet(name)
+            
+        return self._bm_toolbar.bookmarklets[name]
+                
+    def _add_bookmarklet_cb(self, store, name):
+        '''receive name of new bookmarklet from the store'''
+        bm = self._add_bookmarklet(name)
+        bm.flash()
+        
+        self.toolbox.set_current_toolbar(_TOOLBAR_BOOKMARKLETS)
+
+    def _overwrite_bookmarklet_cb(self, store, name, url):
+        '''Ask for confirmation'''
+        alert = ConfirmationAlert()
+        alert.props.title = _('Add bookmarklet')
+        alert.props.msg = _('"%s" already exists. Overwrite?') % name
+        alert.connect('response', self._overwrite_bookmarklet_response_cb)
+        
+        # send the arguments through the alert
+        alert._bm = (name, url)
+        
+        self.add_alert(alert)
+                
+    def _overwrite_bookmarklet_response_cb(self, alert, response_id):
+        self.remove_alert(alert)
+        
+        name, url = alert._bm
+        if response_id is gtk.RESPONSE_OK:
+            self._bm_store.remove(name)
+            self._bm_store.add(name, url)
+            
+    def _userscript_found_cb(self, listener):
+        alert = ConfirmationAlert()
+        alert.props.title = _('Add userscript')
+        alert.props.msg = _('Do you want to add this userscript?')
+        alert.connect('response', self._userscript_found_response_cb)
+        self.add_alert(alert)
+        
+    def _userscript_found_response_cb(self, alert, response_id):
+        self.remove_alert(alert)
+        
+        if response_id is gtk.RESPONSE_OK:
+            pass
 
     def _add_link(self):
         ''' take screenshot and add link info to the model '''

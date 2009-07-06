@@ -39,6 +39,7 @@ import sessionstore
 from palettes import ContentInvoker
 from sessionhistory import HistoryListener
 from progresslistener import ProgressListener
+from usercode import ScriptListener
 
 _ZOOM_AMOUNT = 0.1
 
@@ -89,14 +90,15 @@ class Browser(WebView):
 
     AGENT_SHEET = os.path.join(activity.get_bundle_path(), 
                                'agent-stylesheet.css')
-    USER_SHEET = os.path.join(env.get_profile_path(), 'gecko', 
-                              'user-stylesheet.css')
+    USER_SHEET = os.path.join(activity.get_activity_root(),
+                              'data/style.user.css')
 
     def __init__(self):
         WebView.__init__(self)
-
+        
         self.history = HistoryListener()
         self.progress = ProgressListener()
+        self.userscript = ScriptListener()
 
         cls = components.classes["@mozilla.org/typeaheadfind;1"]
         self.typeahead = cls.createInstance(interfaces.nsITypeAheadFind)
@@ -113,21 +115,23 @@ class Browser(WebView):
         io_service2.manageOfflineStatus = False
 
         cls = components.classes['@mozilla.org/content/style-sheet-service;1']
-        style_sheet_service = cls.getService(interfaces.nsIStyleSheetService)
+        self.style_sheet_service = cls.getService(
+                                            interfaces.nsIStyleSheetService)
 
         if os.path.exists(Browser.AGENT_SHEET):
             agent_sheet_uri = io_service.newURI('file:///' + 
                                                 Browser.AGENT_SHEET,
                                                 None, None)
-            style_sheet_service.loadAndRegisterSheet(agent_sheet_uri,
+            self.style_sheet_service.loadAndRegisterSheet(agent_sheet_uri,
                     interfaces.nsIStyleSheetService.AGENT_SHEET)
 
         if os.path.exists(Browser.USER_SHEET):
-            user_sheet_uri = io_service.newURI('file:///' + Browser.USER_SHEET,
+            self.user_sheet_uri = io_service.newURI('file:///' + 
+                                               Browser.USER_SHEET,
                                                None, None)
-            style_sheet_service.loadAndRegisterSheet(user_sheet_uri,
+            self.style_sheet_service.loadAndRegisterSheet(self.user_sheet_uri,
                     interfaces.nsIStyleSheetService.USER_SHEET)
-
+                    
     def do_setup(self):
         WebView.do_setup(self)
 
@@ -142,14 +146,24 @@ class Browser(WebView):
         self.progress.setup(self)
 
         self.history.setup(self.web_navigation)
+        
+        self.userscript.setup(self)
 
         self.typeahead.init(self.doc_shell)
-
+        
     def get_session(self):
         return sessionstore.get_session(self)
 
     def set_session(self, data):
         return sessionstore.set_session(self, data)
+        
+    def update_userstyle(self):
+        if self.style_sheet_service.sheetRegistered(self.user_sheet_uri,
+                interfaces.nsIStyleSheetService.USER_SHEET):
+            self.style_sheet_service.unregisterSheet(self.user_sheet_uri,
+                    interfaces.nsIStyleSheetService.USER_SHEET)
+            self.style_sheet_service.loadAndRegisterSheet(self.user_sheet_uri,
+                    interfaces.nsIStyleSheetService.USER_SHEET)
 
     def get_source(self, async_cb, async_err_cb):
         cls = components.classes[ \
