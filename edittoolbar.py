@@ -121,9 +121,15 @@ class EditToolbar(activity.EditToolbar):
         self.edit_userscripts.show()
 
     def __edit_userstyle_cb(self, button):
-        editor = usercode.StyleEditor()
-        editor.connect('userstyle-changed', self.__update_userstyle_cb)
-        editor.show()
+        #editor = usercode.StyleEditor()
+        #editor.connect('userstyle-changed', self.__update_userstyle_cb)
+        #editor.show()
+        
+        editor = usercode.SourceEditor(mime_type='text/css')
+        w = gtk.Window()
+        w.add(editor)
+        w.show_all()
+        w.show()
 
     def __update_userstyle_cb(self, editor):
         self._browser.update_userstyle()
