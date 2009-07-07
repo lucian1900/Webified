@@ -43,8 +43,6 @@ class SourceEditor(gtk.ScrolledWindow):
         self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
          
         self.mime_type = mime_type
-        self.width = width or int(gtk.gdk.screen_width()/2)
-        self.height = height or int(gtk.gdk.screen_height()/1.5)
         
         self._buffer = gtksourceview2.Buffer()
         lang_manager = gtksourceview2.language_manager_get_default()
@@ -66,7 +64,6 @@ class SourceEditor(gtk.ScrolledWindow):
         
         # editor view
         self._view = gtksourceview2.View(self._buffer)
-        self._view.set_size_request(self.width, self.height)
         self._view.set_editable(True)
         self._view.set_cursor_visible(True)
         self._view.set_show_line_numbers(True)
@@ -74,6 +71,9 @@ class SourceEditor(gtk.ScrolledWindow):
         self._view.set_auto_indent(True)
         self._view.modify_font(pango.FontDescription("Monospace " +
                               str(style.FONT_SIZE)))
+                              
+        if width is not None and height is not None:
+            self._view.set_size_request(width, height)
 
         self.add(self._view)
         self.show_all()
@@ -87,60 +87,36 @@ class SourceEditor(gtk.ScrolledWindow):
         self._buffer.set_text(text)
         
     text = property(get_text, set_text)
-
-class TextEditor(gtk.Window):
-    def __init__(self, mime_type='text/html', width=None, height=None):
-        gtk.Window.__init__(self)
-        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
-        
-        self.mime_type = mime_type
+    
+class Dialog(gtk.Window):
+    def __init__(self, width=None, height=None):        
         self.width = width or int(gtk.gdk.screen_width()/2)
         self.height = height or int(gtk.gdk.screen_height()/1.5)
         
+        gtk.Window.__init__(self)
+        self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
+        self.set_default_size(self.width, self.height)
+
+class StyleEditor(Dialog):
+    __gsignals__ = {
+        'userstyle-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                             ([])),
+    }
+    
+    def __init__(self):
+        Dialog.__init__(self)
+        self.css_path = os.path.join(activity.get_activity_root(),
+                                     'data/style.user.css')
+                
         # layout
         vbox = gtk.VBox()
-        editorbox = gtk.HBox()
-        buttonbox = gtk.HBox()
         
-        # editor buffer
-        self.buffer = gtksourceview2.Buffer()
-        lang_manager = gtksourceview2.language_manager_get_default()
-        if hasattr(lang_manager, 'list_languages'):
-            langs = lang_manager.list_languages()
-        else:
-            lang_ids = lang_manager.get_language_ids()
-            langs = [lang_manager.get_language(lang_id) 
-                                        for lang_id in lang_ids]
-        for lang in langs:
-            for m in lang.get_mime_types():
-                if m == self.mime_type:
-                    self.buffer.set_language(lang)
-
-        if hasattr(self.buffer, 'set_highlight'):
-            self.buffer.set_highlight(True)
-        else:
-            self.buffer.set_highlight_syntax(True)
-
-        # editor view
-        view = gtksourceview2.View(self.buffer)
-        view.set_size_request(self.width, self.height)
-        view.set_editable(True)
-        view.set_cursor_visible(True)
-        view.set_show_line_numbers(True)
-        view.set_wrap_mode(gtk.WRAP_CHAR)
-        view.set_auto_indent(True)
-        view.modify_font(pango.FontDescription("Monospace " +
-                              str(style.FONT_SIZE)))
-
-        codesw = gtk.ScrolledWindow()
-        codesw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        codesw.add(view)
-        #editorbox.pack_start(codesw)
-        
-        #vbox.pack_start(editorbox)
-        vbox.pack_start(codesw)
+        self.editor = SourceEditor('text/css', self.width, self.height)
+        vbox.pack_start(self.editor)
         
         # buttons
+        buttonbox = gtk.HBox()
+        
         self._cancel_button = gtk.Button(label=_('Cancel'))
         self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
         self._cancel_button.connect('clicked', self._cancel_button_cb)
@@ -148,74 +124,41 @@ class TextEditor(gtk.Window):
         
         self._save_button = gtk.Button(label=_('Save'))
         self._save_button.set_image(Icon(icon_name='dialog-ok'))
-        buttonbox.pack_start(self._save_button)
-        
-        self._apply_button = gtk.Button(label=_('Apply'))
-        self._apply_button.set_image(Icon(icon_name='dialog-ok'))
-        buttonbox.pack_start(self._apply_button)
-        
-        vbox.pack_start(buttonbox)
-        self.add(vbox)
-        
-    def _cancel_button_cb(self, button):
-        self.destroy()
-    
-    def show(self):
-        self.show_all()
-        gtk.Window.show(self)
-        
-    def get_text(self):
-        end = self.buffer.get_end_iter()
-        start = self.buffer.get_start_iter()
-        return self.buffer.get_text(start, end)
-        
-    def set_text(self, text):
-        self.buffer.set_text(text)
-        
-    text = property(get_text, set_text)
-
-
-class StyleEditor(TextEditor):
-    __gsignals__ = {
-        'userstyle-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                             ([])),
-    }
-    
-    def __init__(self):
-        TextEditor.__init__(self, mime_type='text/css')
-
-        self.css_path = os.path.join(activity.get_activity_root(),
-                                     'data/style.user.css')
-                                     
         self._save_button.connect('clicked', self._save_button_cb)
-        self._apply_button.connect('clicked', self._apply_button_cb)
+        buttonbox.pack_start(self._save_button)
+                                             
+        vbox.pack_start(buttonbox)
         
+        self.add(vbox)
+        self.show_all()
+
+        # load user sheet, if any
         if os.path.isfile(self.css_path):
             f = open(self.css_path, 'r')
-            self.text = f.read()
+            self.editor.text = f.read()
             f.close()
-        
-    def _apply_button_cb(self, button):
+
+    def _save_button_cb(self, button):
         f = open(self.css_path, 'w')
-        f.write(self.text)
+        f.write(self.editor.text)
         f.close()
         
         self.emit('userstyle-changed')
         
-    def _save_button_cb(self, button):
-        self._apply_button_cb(button)
+        self.destroy()
         
+    def _cancel_button_cb(self, button):
         self.destroy()
 
 # TODO support multiple userscripts
-class ScriptEditor(TextEditor):
+class ScriptEditor(Dialog):
     __gsignals__ = {
         'inject-script': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                              ([str])),
     }
 
     def __init__(self):
-        TextEditor.__init__(self, mime_type='text/javascript')
+        Dialog.__init__(self)
         
         self.script_path = os.path.join(activity.get_activity_root(),
                                         'data/script.user.js')

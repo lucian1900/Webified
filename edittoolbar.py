@@ -114,22 +114,16 @@ class EditToolbar(activity.EditToolbar):
         self.insert(self.edit_userstyle, -1)
         self.edit_userstyle.show()
         
-        self.edit_userscripts = ToolButton('edit-userscripts')
-        self.edit_userscripts.set_tooltip('Edit user scripts')
-        self.edit_userscripts.connect('clicked', self.__edit_userscripts_cb)
-        self.insert(self.edit_userscripts, -1)
-        self.edit_userscripts.show()
+        #self.edit_userscripts = ToolButton('edit-userscripts')
+        #self.edit_userscripts.set_tooltip('Edit user scripts')
+        #self.edit_userscripts.connect('clicked', self.__edit_userscripts_cb)
+        #self.insert(self.edit_userscripts, -1)
+        #self.edit_userscripts.show()
 
     def __edit_userstyle_cb(self, button):
-        #editor = usercode.StyleEditor()
-        #editor.connect('userstyle-changed', self.__update_userstyle_cb)
-        #editor.show()
-        
-        editor = usercode.SourceEditor(mime_type='text/css')
-        w = gtk.Window()
-        w.add(editor)
-        w.show_all()
-        w.show()
+        editor = usercode.StyleEditor()
+        editor.connect('userstyle-changed', self.__update_userstyle_cb)
+        editor.show()
 
     def __update_userstyle_cb(self, editor):
         self._browser.update_userstyle()
