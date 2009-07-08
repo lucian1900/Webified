@@ -24,11 +24,14 @@ import pango
 import gtksourceview2
 
 import xpcom
+from xpcom import components
 from xpcom.components import interfaces
 
 from sugar.activity import activity
 from sugar.graphics import style
 from sugar.graphics.icon import Icon
+
+from jarabe.view import viewsource
 
 
 class SourceEditor(gtk.ScrolledWindow):
@@ -96,6 +99,10 @@ class Dialog(gtk.Window):
         gtk.Window.__init__(self)
         self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
         self.set_default_size(self.width, self.height)
+        
+    def show(self):
+        self.show_all()
+        gtk.Window.show(self)
 
 class StyleEditor(Dialog):
     __gsignals__ = {
@@ -130,7 +137,6 @@ class StyleEditor(Dialog):
         vbox.pack_start(buttonbox)
         
         self.add(vbox)
-        self.show_all()
 
         # load user sheet, if any
         if os.path.isfile(self.css_path):
@@ -159,23 +165,77 @@ class ScriptEditor(Dialog):
 
     def __init__(self):
         Dialog.__init__(self)
-        
-        self.script_path = os.path.join(activity.get_activity_root(),
-                                        'data/script.user.js')
+        self.scripts_path = os.path.join(activity.get_activity_root(),
+                                        'data/userscripts')
                                         
-        self._save_button.connect('clicked', self._save_button_cb)
+        # layout
+        hbox = gtk.HBox()
         
+        # file viewer
+        fileviewer = viewsource.FileViewer(self.scripts_path, 'test.user.js')
+        fileviewer.connect('file-selected', self._file_selected_cb)
+        hbox.pack_start(fileviewer)
+        
+        # editor
+        editbox = gtk.VBox()
+        
+        self.editor = SourceEditor('text/javascript', self.width, self.height)
+        editbox.pack_start(self.editor)
+                                        
+        # buttons
+        buttonbox = gtk.HBox()
+
+        self._cancel_button = gtk.Button(label=_('Cancel'))
+        self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
+        self._cancel_button.connect('clicked', self._cancel_button_cb)
+        buttonbox.pack_start(self._cancel_button)
+
+        self._save_button = gtk.Button(label=_('Save'))
+        self._save_button.set_image(Icon(icon_name='dialog-ok'))
+        self._save_button.connect('clicked', self._save_button_cb)
+        buttonbox.pack_start(self._save_button)       
+        
+        editbox.pack_start(buttonbox)
+        
+        hbox.pack_start(editbox)
+        
+        self.add(hbox)
+                
     def _save_button_cb(self, button):
-        self.emit('inject-script', self.text)
+        self.emit('inject-script', self.editor.text)
         
         self.destroy()
         
+    def _cancel_button_cb(self, button):
+        self.destroy()
+        
+    def _file_selected_cb(self, view, file_path):
+        logging.debug('@@@@@ %s' % file_path)
+        f = open(file_path, 'r')
+        self.editor.text = f.read()
+        f.close()
+        
+def add_script(location):
+    logging.debug('##### %s' % location)
+    
+    cls = components.classes["@mozilla.org/network/io-service;1"]
+    io_service = cls.getService(interfaces.nsIIOService)
+    
+    cls = components.classes[ \
+                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
+    browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
+    
+    location_uri = io_service.newURI(location, None, None)
+    file_uri = io_service.newURI('file:///tmp/user.js', None, None)
+    
+    browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
+           
 class ScriptListener(gobject.GObject):
     _com_interfaces_ = interfaces.nsIWebProgressListener
 
     __gsignals__ = {
         'userscript-found': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                             ([])),
+                             ([str])),
     }
 
     def __init__(self):
@@ -186,7 +246,7 @@ class ScriptListener(gobject.GObject):
 
     def onLocationChange(self, webProgress, request, location):
         if location.spec.endswith('.user.js'):
-            self.emit('userscript-found')
+            self.emit('userscript-found', location.spec)
 
     def setup(self, browser):
         browser.web_progress.addProgressListener(self._wrapped_self, 

@@ -165,6 +165,7 @@ import downloadmanager
 import globalhistory
 import filepicker
 import bookmarklets
+import usercode
 
 _LIBRARY_PATH = '/usr/share/library-common/index.html'
 
@@ -537,11 +538,14 @@ class WebActivity(activity.Activity):
             self._bm_store.remove(name)
             self._bm_store.add(name, url)
             
-    def _userscript_found_cb(self, listener):
+    def _userscript_found_cb(self, listener, location):
         alert = ConfirmationAlert()
         alert.props.title = _('Add userscript')
         alert.props.msg = _('Do you want to add this userscript?')
         alert.connect('response', self._userscript_found_response_cb)
+        
+        alert._location = location
+        
         self.add_alert(alert)
         
     def _userscript_found_response_cb(self, alert, response_id):
@@ -549,6 +553,7 @@ class WebActivity(activity.Activity):
         
         if response_id is gtk.RESPONSE_OK:
             pass
+            usercode.add_script(alert._location)
 
     def _add_link(self):
         ''' take screenshot and add link info to the model '''

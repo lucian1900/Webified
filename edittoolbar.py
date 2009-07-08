@@ -103,7 +103,7 @@ class EditToolbar(activity.EditToolbar):
         self._next.show()
         
         separator = gtk.SeparatorToolItem()
-        separator.set_draw(False)
+        separator.set_draw(True)
         separator.set_expand(True)
         self.insert(separator, -1)
         separator.show()
@@ -114,11 +114,11 @@ class EditToolbar(activity.EditToolbar):
         self.insert(self.edit_userstyle, -1)
         self.edit_userstyle.show()
         
-        #self.edit_userscripts = ToolButton('edit-userscripts')
-        #self.edit_userscripts.set_tooltip('Edit user scripts')
-        #self.edit_userscripts.connect('clicked', self.__edit_userscripts_cb)
-        #self.insert(self.edit_userscripts, -1)
-        #self.edit_userscripts.show()
+        self.edit_userscripts = ToolButton('edit-userscripts')
+        self.edit_userscripts.set_tooltip('Edit user scripts')
+        self.edit_userscripts.connect('clicked', self.__edit_userscripts_cb)
+        self.insert(self.edit_userscripts, -1)
+        self.edit_userscripts.show()
 
     def __edit_userstyle_cb(self, button):
         editor = usercode.StyleEditor()
