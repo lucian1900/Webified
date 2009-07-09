@@ -560,15 +560,9 @@ class WebActivity(activity.Activity):
             
     def _userscript_inject_cb(self, listener, script_path):
         logging.debug('@@@@@ %s' % script_path)
-        w = self._browser.dom_window
         
-        script = w.document.createElement('script')
-        script.type = 'text/javascript'
-        script.src = script_path
-    
-        head = w.document.getElementsByTagName('head').item(0)
-        head.appendChild(script)
-            
+        usercode.Injector(script_path).attach(self._browser.dom_window)
+        
     def _add_link(self):
         ''' take screenshot and add link info to the model '''
         for link in self.model.data['shared_links']:

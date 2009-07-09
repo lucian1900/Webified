@@ -223,7 +223,33 @@ def add_script(location):
     file_uri = io_service.newURI('file:///tmp/user.js', None, None)
     
     browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
-           
+
+class Injector():
+    _com_interfaces_ = interfaces.nsIDOMEventListener
+    
+    def __init__(self, script_path):
+        self.script_path = script_path
+             
+        self._wrapped = xpcom.server.WrapObject(
+            self, interfaces.nsIDOMEventListener)
+
+    def handleEvent(self, event):
+        logging.debug('$$$$$ injecting')
+        self.head.appendChild(self.script)
+    
+    def attach(self, dom_window):
+        w = dom_window
+        
+        self.script = w.document.createElement('script')
+        self.script.type = 'text/javascript'
+        #self.script.src = 'file://' + self.script_path
+        text = w.document.createTextNode(open(self.script_path,'r').read())
+        self.script.appendChild(text)
+        
+        self.head = w.document.getElementsByTagName('head').item(0)
+        
+        w.addEventListener('load', self._wrapped, False)
+    
 class ScriptListener(gobject.GObject):
     _com_interfaces_ = interfaces.nsIWebProgressListener
 
@@ -237,13 +263,14 @@ class ScriptListener(gobject.GObject):
     def __init__(self):
         gobject.GObject.__init__(self)
 
-        self._wrapped_self = xpcom.server.WrapObject( \
+        self._wrapped = xpcom.server.WrapObject( \
                 self, interfaces.nsIWebProgressListener)
                 
         self.scripts_path = os.path.join(activity.get_activity_root(),
                                          'data/userscripts')
 
     def onLocationChange(self, webProgress, request, location):
+        logging.debug('^^^^^ %s' % location.spec)
         if location.spec.endswith('.user.js'):
             self.emit('userscript-found', location.spec)
         else:
@@ -251,5 +278,6 @@ class ScriptListener(gobject.GObject):
             self.emit('userscript-inject', script_path)
 
     def setup(self, browser):
-        browser.web_progress.addProgressListener(self._wrapped_self, 
+        browser.web_progress.addProgressListener(self._wrapped, 
                                 interfaces.nsIWebProgress.NOTIFY_LOCATION)
+
