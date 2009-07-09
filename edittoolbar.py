@@ -130,19 +130,7 @@ class EditToolbar(activity.EditToolbar):
         
     def __edit_userscripts_cb(self, button):
         editor = usercode.ScriptEditor()
-        editor.connect('inject-script', self.__inject_script_cb)
         editor.show()
-        
-    def __inject_script_cb(self, editor, text):
-        doc = self._browser.dom_window.document
-        
-        head = doc.getElementsByTagName('head').item(0)
-        
-        script = doc.createElement('script')
-        script.type = 'text/javascript'
-        script.appendChild(doc.createTextNode(text))
-        
-        head.appendChild(script)
 
     def __undo_cb(self, button):
         command_manager = self._get_command_manager()

@@ -90,7 +90,7 @@ class SourceEditor(gtk.ScrolledWindow):
         self._buffer.set_text(text)
         
     text = property(get_text, set_text)
-    
+
 class Dialog(gtk.Window):
     def __init__(self, width=None, height=None):        
         self.width = width or int(gtk.gdk.screen_width()/2)
@@ -107,7 +107,7 @@ class Dialog(gtk.Window):
 class StyleEditor(Dialog):
     __gsignals__ = {
         'userstyle-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                             ([])),
+                              ([])),
     }
     
     def __init__(self):
@@ -152,12 +152,8 @@ class StyleEditor(Dialog):
     def _cancel_button_cb(self, button):
         self.destroy()
 
-class ScriptEditor(Dialog):
-    __gsignals__ = {
-        'inject-script': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                             ([str])),
-    }
 
+class ScriptEditor(Dialog):
     def __init__(self):
         Dialog.__init__(self)
         self.scripts_path = os.path.join(activity.get_activity_root(),
@@ -167,9 +163,10 @@ class ScriptEditor(Dialog):
         hbox = gtk.HBox()
         
         # file viewer
-        fileviewer = viewsource.FileViewer(self.scripts_path, 'test.user.js')
-        fileviewer.connect('file-selected', self._file_selected_cb)
-        hbox.pack_start(fileviewer)
+        self.fileview = viewsource.FileViewer(self.scripts_path,
+                                                'test.user.js')
+        self.fileview.connect('file-selected', self._file_selected_cb)
+        hbox.pack_start(self.fileview)
         
         # editor
         editbox = gtk.VBox()
@@ -180,7 +177,7 @@ class ScriptEditor(Dialog):
         # buttons
         buttonbox = gtk.HBox()
 
-        self._cancel_button = gtk.Button(label=_('Cancel'))
+        self._cancel_button = gtk.Button(label=_('Close'))
         self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
         self._cancel_button.connect('clicked', self._cancel_button_cb)
         buttonbox.pack_start(self._cancel_button)
@@ -195,19 +192,23 @@ class ScriptEditor(Dialog):
         hbox.pack_start(editbox)
         
         self.add(hbox)
+        
+        self._file_selected_cb(self.fileview, 
+                               self.fileview._initial_filename)
                 
     def _save_button_cb(self, button):
-        self.emit('inject-script', self.editor.text)
+        '''HACK'''
+        selection = self.fileview._tree_view.get_selection()
+        model, tree_iter = selection.get_selected()
+        file_path = model.get_value(tree_iter, 1)
         
-        self.destroy()
+        open(file_path, 'w').write(self.editor.text)
         
     def _cancel_button_cb(self, button):
         self.destroy()
         
     def _file_selected_cb(self, view, file_path):
-        f = open(file_path, 'r')
-        self.editor.text = f.read()
-        f.close()
+        self.editor.text = open(file_path, 'r').read()
         
 def add_script(location):
     logging.debug('##### %s' % location)
@@ -234,10 +235,10 @@ class Injector():
             self, interfaces.nsIDOMEventListener)
 
     def handleEvent(self, event):
-        logging.debug('$$$$$ injecting')
         self.head.appendChild(self.script)
     
-    def attach_to(self, window):        
+    def attach_to(self, window):
+        # set up the script element to be injected
         self.script = window.document.createElement('script')
         self.script.type = 'text/javascript'
         #self.script.src = 'file://' + self.script_path # XSS security fail
@@ -245,8 +246,10 @@ class Injector():
         text = open(self.script_path,'r').read()
         self.script.appendChild( window.document.createTextNode(text) )
         
+        # reference to head
         self.head = window.document.getElementsByTagName('head').item(0)   
         
+        # actual attaching
         window.addEventListener('load', self._wrapped, False)
     
 class ScriptListener(gobject.GObject):
@@ -269,7 +272,6 @@ class ScriptListener(gobject.GObject):
                                          'data/userscripts')
 
     def onLocationChange(self, webProgress, request, location):
-        logging.debug('^^^^^ %s' % location.spec)
         if location.spec.endswith('.user.js'):
             self.emit('userscript-found', location.spec)
         else:

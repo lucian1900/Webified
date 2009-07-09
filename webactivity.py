@@ -558,9 +558,7 @@ class WebActivity(activity.Activity):
             pass
             usercode.add_script(alert._location)
             
-    def _userscript_inject_cb(self, listener, script_path):
-        logging.debug('@@@@@ %s' % script_path)
-        
+    def _userscript_inject_cb(self, listener, script_path):        
         usercode.Injector(script_path).attach_to(self._browser.dom_window)
         
     def _add_link(self):
