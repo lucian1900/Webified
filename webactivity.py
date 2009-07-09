@@ -561,7 +561,7 @@ class WebActivity(activity.Activity):
     def _userscript_inject_cb(self, listener, script_path):
         logging.debug('@@@@@ %s' % script_path)
         
-        usercode.Injector(script_path).attach(self._browser.dom_window)
+        usercode.Injector(script_path).attach_to(self._browser.dom_window)
         
     def _add_link(self):
         ''' take screenshot and add link info to the model '''

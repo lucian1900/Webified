@@ -237,18 +237,17 @@ class Injector():
         logging.debug('$$$$$ injecting')
         self.head.appendChild(self.script)
     
-    def attach(self, dom_window):
-        w = dom_window
-        
-        self.script = w.document.createElement('script')
+    def attach_to(self, window):        
+        self.script = window.document.createElement('script')
         self.script.type = 'text/javascript'
-        #self.script.src = 'file://' + self.script_path
-        text = w.document.createTextNode(open(self.script_path,'r').read())
-        self.script.appendChild(text)
+        #self.script.src = 'file://' + self.script_path # XSS security fail
         
-        self.head = w.document.getElementsByTagName('head').item(0)
+        text = open(self.script_path,'r').read()
+        self.script.appendChild( window.document.createTextNode(text) )
         
-        w.addEventListener('load', self._wrapped, False)
+        self.head = window.document.getElementsByTagName('head').item(0)   
+        
+        window.addEventListener('load', self._wrapped, False)
     
 class ScriptListener(gobject.GObject):
     _com_interfaces_ = interfaces.nsIWebProgressListener
@@ -274,10 +273,11 @@ class ScriptListener(gobject.GObject):
         if location.spec.endswith('.user.js'):
             self.emit('userscript-found', location.spec)
         else:
-            script_path = os.path.join(self.scripts_path, 'test.user.js')
-            self.emit('userscript-inject', script_path)
+            # TODO load scripts according to domain
+            for i in os.listdir(self.scripts_path):                
+                script_path = os.path.join(self.scripts_path, i)
+                self.emit('userscript-inject', script_path)
 
     def setup(self, browser):
         browser.web_progress.addProgressListener(self._wrapped, 
                                 interfaces.nsIWebProgress.NOTIFY_LOCATION)
-
