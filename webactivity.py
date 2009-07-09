@@ -266,7 +266,10 @@ class WebActivity(activity.Activity):
             
         # enable userscript saving
         self._browser.userscript.connect('userscript-found',
-                                        self._userscript_found_cb)    
+                                         self._userscript_found_cb)    
+        # enable userscript injecting
+        self._browser.userscript.connect('userscript-inject',
+                                         self._userscript_inject_cb)
 
         if handle.uri:
             self._browser.load_uri(handle.uri)        
@@ -554,7 +557,18 @@ class WebActivity(activity.Activity):
         if response_id is gtk.RESPONSE_OK:
             pass
             usercode.add_script(alert._location)
-
+            
+    def _userscript_inject_cb(self, listener, script_path):
+        logging.debug('@@@@@ %s' % script_path)
+        w = self._browser.dom_window
+        
+        script = w.document.createElement('script')
+        script.type = 'text/javascript'
+        script.src = script_path
+    
+        head = w.document.getElementsByTagName('head').item(0)
+        head.appendChild(script)
+            
     def _add_link(self):
         ''' take screenshot and add link info to the model '''
         for link in self.model.data['shared_links']:

@@ -114,7 +114,7 @@ class StyleEditor(Dialog):
         Dialog.__init__(self)
         self.css_path = os.path.join(activity.get_activity_root(),
                                      'data/style.user.css')
-                
+        
         # layout
         vbox = gtk.VBox()
         
@@ -133,21 +133,17 @@ class StyleEditor(Dialog):
         self._save_button.set_image(Icon(icon_name='dialog-ok'))
         self._save_button.connect('clicked', self._save_button_cb)
         buttonbox.pack_start(self._save_button)
-                                             
+                                   
         vbox.pack_start(buttonbox)
         
         self.add(vbox)
 
         # load user sheet, if any
         if os.path.isfile(self.css_path):
-            f = open(self.css_path, 'r')
-            self.editor.text = f.read()
-            f.close()
+            self.editor.text = open(self.css_path, 'r').read()
 
     def _save_button_cb(self, button):
-        f = open(self.css_path, 'w')
-        f.write(self.editor.text)
-        f.close()
+        open(self.css_path, 'w').write(self.editor.text)
         
         self.emit('userstyle-changed')
         
@@ -156,7 +152,6 @@ class StyleEditor(Dialog):
     def _cancel_button_cb(self, button):
         self.destroy()
 
-# TODO support multiple userscripts
 class ScriptEditor(Dialog):
     __gsignals__ = {
         'inject-script': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
@@ -210,7 +205,6 @@ class ScriptEditor(Dialog):
         self.destroy()
         
     def _file_selected_cb(self, view, file_path):
-        logging.debug('@@@@@ %s' % file_path)
         f = open(file_path, 'r')
         self.editor.text = f.read()
         f.close()
@@ -236,6 +230,8 @@ class ScriptListener(gobject.GObject):
     __gsignals__ = {
         'userscript-found': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
                              ([str])),
+        'userscript-inject': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                             ([str])),
     }
 
     def __init__(self):
@@ -243,10 +239,16 @@ class ScriptListener(gobject.GObject):
 
         self._wrapped_self = xpcom.server.WrapObject( \
                 self, interfaces.nsIWebProgressListener)
+                
+        self.scripts_path = os.path.join(activity.get_activity_root(),
+                                         'data/userscripts')
 
     def onLocationChange(self, webProgress, request, location):
         if location.spec.endswith('.user.js'):
             self.emit('userscript-found', location.spec)
+        else:
+            script_path = os.path.join(self.scripts_path, 'test.user.js')
+            self.emit('userscript-inject', script_path)
 
     def setup(self, browser):
         browser.web_progress.addProgressListener(self._wrapped_self, 
