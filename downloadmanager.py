@@ -309,6 +309,7 @@ def save_link(url, text, owner_document):
         interfaces.nsIRequest.LOAD_BYPASS_CACHE | \
         interfaces.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS
 
+    # if _implements_interface(channel, interfaces.nsIHttpChannel): # trac#1029
     if _implements_interface(channel, interfaces.nsIHttpChannel):
         channel.referrer = io_service.newURI(owner_document.documentURI, None,
                                              None)
@@ -361,9 +362,10 @@ class _SaveLinkProgressListener(object):
 
         cls = components.classes[
                 "@mozilla.org/uriloader/external-helper-app-service;1"]
-        external_helper = cls.getService(interfaces.nsIExternalHelperAppService)
+        external_helper = cls.getService(
+                                interfaces.nsIExternalHelperAppService)
 
-        channel = request.QueryInterface(interfaces.nsIChannel)
+        channel = request.QueryInterface(interfaces.nsIHttpChannel)
 
         self._external_listener = \
             external_helper.doContent(channel.contentType, request, 

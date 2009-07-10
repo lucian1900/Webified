@@ -34,62 +34,18 @@ from sugar.graphics.icon import Icon
 from jarabe.view import viewsource
 
 
-class SourceEditor(gtk.ScrolledWindow):
-    '''TextView-like widget with syntax coloring and scroll bars
-    
-    Much of the initialisation code is from Pippy'''
-    
-    __gtype_name__ = 'SugarSourceEditor'
-    
-    def __init__(self, mime_type='text/plain', width=None, height=None):
-        gtk.ScrolledWindow.__init__(self)
-        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-         
-        self.mime_type = mime_type
+class SourceEditor(viewsource.SourceDisplay):
+    def __init__(self, width, height):
+        viewsource.SourceDisplay.__init__(self)
+        self._source_view.set_editable(True)
         
-        self._buffer = gtksourceview2.Buffer()
-        lang_manager = gtksourceview2.language_manager_get_default()
-        if hasattr(lang_manager, 'list_languages'):
-            langs = lang_manager.list_languages()
-        else:
-            lang_ids = lang_manager.get_language_ids()
-            langs = [lang_manager.get_language(lang_id) 
-                                        for lang_id in lang_ids]
-        for lang in langs:
-            for m in lang.get_mime_types():
-                if m == self.mime_type:
-                    self._buffer.set_language(lang)
-
-        if hasattr(self._buffer, 'set_highlight'):
-            self._buffer.set_highlight(True)
-        else:
-            self._buffer.set_highlight_syntax(True)
-        
-        # editor view
-        self._view = gtksourceview2.View(self._buffer)
-        self._view.set_editable(True)
-        self._view.set_cursor_visible(True)
-        self._view.set_show_line_numbers(True)
-        self._view.set_wrap_mode(gtk.WRAP_CHAR)
-        self._view.set_auto_indent(True)
-        self._view.modify_font(pango.FontDescription("Monospace " +
-                              str(style.FONT_SIZE)))
-                              
         if width is not None and height is not None:
-            self._view.set_size_request(width, height)
-
-        self.add(self._view)
-        self.show_all()
-
-    def get_text(self):
-        end = self._buffer.get_end_iter()
+            self._source_view.set_size_request(width, height)
+        
+    def write(self):
         start = self._buffer.get_start_iter()
-        return self._buffer.get_text(start, end)
-        
-    def set_text(self, text):
-        self._buffer.set_text(text)
-        
-    text = property(get_text, set_text)
+        end = self._buffer.get_end_iter()
+        open(self._file_path, 'w').write(self._buffer.get_text(start, end))
 
 class Dialog(gtk.Window):
     def __init__(self, width=None, height=None):        
@@ -112,13 +68,13 @@ class StyleEditor(Dialog):
     
     def __init__(self):
         Dialog.__init__(self)
-        self.css_path = os.path.join(activity.get_activity_root(),
-                                     'data/style.user.css')
         
         # layout
         vbox = gtk.VBox()
         
-        self.editor = SourceEditor('text/css', self.width, self.height)
+        self.editor = SourceEditor(self.width, self.height)
+        self.editor.file_path = os.path.join(activity.get_activity_root(),
+                                             'data/style.user.css')
         vbox.pack_start(self.editor)
         
         # buttons
@@ -139,14 +95,13 @@ class StyleEditor(Dialog):
         self.add(vbox)
 
         # load user sheet, if any
-        if os.path.isfile(self.css_path):
-            self.editor.text = open(self.css_path, 'r').read()
+        #if os.path.isfile(self.css_path):
+        #    self.editor.text = open(self.css_path, 'r').read()
 
     def _save_button_cb(self, button):
-        open(self.css_path, 'w').write(self.editor.text)
-        
+        #open(self.css_path, 'w').write(self.editor.text)
+        self.editor.write()
         self.emit('userstyle-changed')
-        
         self.destroy()
         
     def _cancel_button_cb(self, button):
@@ -171,7 +126,7 @@ class ScriptEditor(Dialog):
         # editor
         editbox = gtk.VBox()
         
-        self.editor = SourceEditor('text/javascript', self.width, self.height)
+        self.editor = SourceEditor(self.width, self.height)
         editbox.pack_start(self.editor)
                                         
         # buttons
@@ -181,34 +136,42 @@ class ScriptEditor(Dialog):
         self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
         self._cancel_button.connect('clicked', self._cancel_button_cb)
         buttonbox.pack_start(self._cancel_button)
-
+        
+        self._delete_button = gtk.Button(label=_('Delete'))
+        self._delete_button.set_image(Icon(icon_name='stock_delete'))
+        self._delete_button.connect('clicked', self._delete_button_cb)
+        buttonbox.pack_start(self._delete_button)
+        
         self._save_button = gtk.Button(label=_('Save'))
         self._save_button.set_image(Icon(icon_name='dialog-ok'))
         self._save_button.connect('clicked', self._save_button_cb)
-        buttonbox.pack_start(self._save_button)       
+        buttonbox.pack_start(self._save_button)
         
         editbox.pack_start(buttonbox)
-        
         hbox.pack_start(editbox)
         
         self.add(hbox)
         
         self._file_selected_cb(self.fileview, 
                                self.fileview._initial_filename)
-                
-    def _save_button_cb(self, button):
+
+    def _get_selected_file(self):
         '''HACK'''
         selection = self.fileview._tree_view.get_selection()
         model, tree_iter = selection.get_selected()
-        file_path = model.get_value(tree_iter, 1)
+        return model.get_value(tree_iter, 1)
+    
+    def _save_button_cb(self, button):
+        self.editor.write()
         
-        open(file_path, 'w').write(self.editor.text)
+    def _delete_button_cb(self, button):
+        os.remove(self._get_selected_file())
         
     def _cancel_button_cb(self, button):
         self.destroy()
         
     def _file_selected_cb(self, view, file_path):
-        self.editor.text = open(file_path, 'r').read()
+        self.editor.file_path = self._get_selected_file()
         
 def add_script(location):
     logging.debug('##### %s' % location)
@@ -267,7 +230,7 @@ class ScriptListener(gobject.GObject):
 
         self._wrapped = xpcom.server.WrapObject( \
                 self, interfaces.nsIWebProgressListener)
-                
+        
         self.scripts_path = os.path.join(activity.get_activity_root(),
                                          'data/userscripts')
 
@@ -275,7 +238,7 @@ class ScriptListener(gobject.GObject):
         if location.spec.endswith('.user.js'):
             self.emit('userscript-found', location.spec)
         else:
-            # TODO load scripts according to domain
+            # TODO load scripts according to domain regex
             for i in os.listdir(self.scripts_path):                
                 script_path = os.path.join(self.scripts_path, i)
                 self.emit('userscript-inject', script_path)
