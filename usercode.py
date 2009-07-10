@@ -117,7 +117,7 @@ class ScriptEditor(Dialog):
         # layout
         hbox = gtk.HBox()
         
-        # file viewer
+        # file viewer, HACK 
         self.fileview = viewsource.FileViewer(self.scripts_path,
                                                 'test.user.js')
         self.fileview.connect('file-selected', self._file_selected_cb)
@@ -174,6 +174,7 @@ class ScriptEditor(Dialog):
         self.editor.file_path = self._get_selected_file()
         
 def add_script(location):
+    #location = 'http://google.com/favicon.ico'
     logging.debug('##### %s' % location)
     
     cls = components.classes["@mozilla.org/network/io-service;1"]
@@ -182,9 +183,16 @@ def add_script(location):
     cls = components.classes[ \
                         '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
     browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
-    
+
     location_uri = io_service.newURI(location, None, None)
-    file_uri = io_service.newURI('file:///tmp/user.js', None, None)
+    file_name = os.path.basename(location_uri.path)
+    
+    file_path = os.path.join(activity.get_activity_root(),
+                             'data/userscripts', file_name)
+                             
+    logging.debug('##### %s' % file_path)
+    
+    file_uri = io_service.newURI('file://'+file_path, None, None)
     
     browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
 

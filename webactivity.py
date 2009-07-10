@@ -555,7 +555,6 @@ class WebActivity(activity.Activity):
         self.remove_alert(alert)
         
         if response_id is gtk.RESPONSE_OK:
-            pass
             usercode.add_script(alert._location)
             
     def _userscript_inject_cb(self, listener, script_path):        
