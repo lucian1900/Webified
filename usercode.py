@@ -31,8 +31,8 @@ from sugar.activity import activity
 from sugar.graphics import style
 from sugar.graphics.icon import Icon
 
-#from jarabe.view.viewsource.FileViewer
-from sourceedit import SourceView, FileViewer
+from sourceedit import SourceView
+from jarabe.view.viewsource import FileViewer #HACK
 
 SCRIPTS_PATH = os.path.join(activity.get_activity_root(),
                             'data/userscripts')
@@ -85,37 +85,13 @@ class StyleEditor(Dialog):
         
         self.add(vbox)
 
-        # load user sheet, if any
-        #if os.path.isfile(self.css_path):
-        #    self.editor.text = open(self.css_path, 'r').read()
-
     def _save_button_cb(self, button):
-        #open(self.css_path, 'w').write(self.editor.text)
         self.editor.write()
         self.emit('userstyle-changed')
         self.destroy()
         
     def _cancel_button_cb(self, button):
         self.destroy()
-
-def add_script(location):
-    cls = components.classes["@mozilla.org/network/io-service;1"]
-    io_service = cls.getService(interfaces.nsIIOService)
-
-    cls = components.classes[ \
-                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
-    browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
-
-
-    location_uri = io_service.newURI(location, None, None)
-
-    file_name = os.path.basename(location_uri.path)
-    file_path = os.path.join(SCRIPTS_PATH, file_name)
-    file_uri = io_service.newURI('file://'+file_path, None, None)
-
-    logging.debug('##### %s -> %s' % (location_uri.spec, file_uri.spec))
-
-    browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
 
 class ScriptEditor(Dialog):
     def __init__(self):
@@ -124,18 +100,14 @@ class ScriptEditor(Dialog):
         # layout
         hbox = gtk.HBox()
         
-        # file viewer, HACK 
         self.fileview = FileViewer(SCRIPTS_PATH, 'test.user.js')
         self.fileview.connect('file-selected', self._file_selected_cb)
         hbox.pack_start(self.fileview)
         
-        # editor
-        editbox = gtk.VBox()
-        
+        editbox = gtk.VBox()        
         self.editor = SourceView()
         editbox.pack_start(self.editor)
                                         
-        # buttons
         buttonbox = gtk.HBox()
 
         self._cancel_button = gtk.Button(label=_('Close'))
@@ -158,27 +130,60 @@ class ScriptEditor(Dialog):
         
         self.add(hbox)
         
+        # HACK
         self._file_selected_cb(self.fileview, 
                                self.fileview._initial_filename)
 
     def _get_selected_file(self):
-        '''HACK'''
+        # HACK
         selection = self.fileview._tree_view.get_selection()
         model, tree_iter = selection.get_selected()
-        return model.get_value(tree_iter, 1)
+        if tree_iter is None:
+            return None
+        else:
+            return model.get_value(tree_iter, 1)
     
     def _save_button_cb(self, button):
         self.editor.write()
         
     def _delete_button_cb(self, button):
-        # TODO remove file from fileviewer model
-        os.remove(self._get_selected_file())
+        file_path = self._get_selected_file()
+                
+        # HACK remove from model
+        model = self.fileview._tree_view.get_model()
+        for i in model:
+            if i[0] == os.path.basename(file_path):
+                model.remove(model.get_iter(i.path))
+                break
+        
+        # remove actual file
+        os.remove(file_path)
         
     def _cancel_button_cb(self, button):
         self.destroy()
         
     def _file_selected_cb(self, view, file_path):
         self.editor.file_path = self._get_selected_file()
+
+def add_script(location):
+    cls = components.classes["@mozilla.org/network/io-service;1"]
+    io_service = cls.getService(interfaces.nsIIOService)
+
+    cls = components.classes[ \
+                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
+    browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
+
+
+    location_uri = io_service.newURI(location, None, None)
+
+    file_name = os.path.basename(location_uri.path)
+    file_path = os.path.join(SCRIPTS_PATH, file_name)
+    file_uri = io_service.newURI('file://'+file_path, None, None)
+
+    logging.debug('##### %s -> %s' % (location_uri.spec, file_uri.spec))
+
+    browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
+
 
 class Injector():
     _com_interfaces_ = interfaces.nsIDOMEventListener
