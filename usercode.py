@@ -31,21 +31,13 @@ from sugar.activity import activity
 from sugar.graphics import style
 from sugar.graphics.icon import Icon
 
-from jarabe.view import viewsource
+#from jarabe.view.viewsource.FileViewer
+from sourceedit import SourceView, FileViewer
 
-
-class SourceEditor(viewsource.SourceDisplay):
-    def __init__(self, width, height):
-        viewsource.SourceDisplay.__init__(self)
-        self._source_view.set_editable(True)
-        
-        if width is not None and height is not None:
-            self._source_view.set_size_request(width, height)
-        
-    def write(self):
-        start = self._buffer.get_start_iter()
-        end = self._buffer.get_end_iter()
-        open(self._file_path, 'w').write(self._buffer.get_text(start, end))
+SCRIPTS_PATH = os.path.join(activity.get_activity_root(),
+                            'data/userscripts')
+STYLE_PATH = os.path.join(activity.get_activity_root(),
+                          'data/style.user.css')
 
 class Dialog(gtk.Window):
     def __init__(self, width=None, height=None):        
@@ -72,9 +64,8 @@ class StyleEditor(Dialog):
         # layout
         vbox = gtk.VBox()
         
-        self.editor = SourceEditor(self.width, self.height)
-        self.editor.file_path = os.path.join(activity.get_activity_root(),
-                                             'data/style.user.css')
+        self.editor = SourceView()
+        self.editor.file_path = STYLE_PATH
         vbox.pack_start(self.editor)
         
         # buttons
@@ -107,26 +98,41 @@ class StyleEditor(Dialog):
     def _cancel_button_cb(self, button):
         self.destroy()
 
+def add_script(location):
+    cls = components.classes["@mozilla.org/network/io-service;1"]
+    io_service = cls.getService(interfaces.nsIIOService)
+
+    cls = components.classes[ \
+                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
+    browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
+
+
+    location_uri = io_service.newURI(location, None, None)
+
+    file_name = os.path.basename(location_uri.path)
+    file_path = os.path.join(SCRIPTS_PATH, file_name)
+    file_uri = io_service.newURI('file://'+file_path, None, None)
+
+    logging.debug('##### %s -> %s' % (location_uri.spec, file_uri.spec))
+
+    browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
 
 class ScriptEditor(Dialog):
     def __init__(self):
         Dialog.__init__(self)
-        self.scripts_path = os.path.join(activity.get_activity_root(),
-                                        'data/userscripts')
                                         
         # layout
         hbox = gtk.HBox()
         
         # file viewer, HACK 
-        self.fileview = viewsource.FileViewer(self.scripts_path,
-                                                'test.user.js')
+        self.fileview = FileViewer(SCRIPTS_PATH, 'test.user.js')
         self.fileview.connect('file-selected', self._file_selected_cb)
         hbox.pack_start(self.fileview)
         
         # editor
         editbox = gtk.VBox()
         
-        self.editor = SourceEditor(self.width, self.height)
+        self.editor = SourceView()
         editbox.pack_start(self.editor)
                                         
         # buttons
@@ -165,6 +171,7 @@ class ScriptEditor(Dialog):
         self.editor.write()
         
     def _delete_button_cb(self, button):
+        # TODO remove file from fileviewer model
         os.remove(self._get_selected_file())
         
     def _cancel_button_cb(self, button):
@@ -172,29 +179,6 @@ class ScriptEditor(Dialog):
         
     def _file_selected_cb(self, view, file_path):
         self.editor.file_path = self._get_selected_file()
-        
-def add_script(location):
-    #location = 'http://google.com/favicon.ico'
-    logging.debug('##### %s' % location)
-    
-    cls = components.classes["@mozilla.org/network/io-service;1"]
-    io_service = cls.getService(interfaces.nsIIOService)
-    
-    cls = components.classes[ \
-                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
-    browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
-
-    location_uri = io_service.newURI(location, None, None)
-    file_name = os.path.basename(location_uri.path)
-    
-    file_path = os.path.join(activity.get_activity_root(),
-                             'data/userscripts', file_name)
-                             
-    logging.debug('##### %s' % file_path)
-    
-    file_uri = io_service.newURI('file://'+file_path, None, None)
-    
-    browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
 
 class Injector():
     _com_interfaces_ = interfaces.nsIDOMEventListener
@@ -238,17 +222,14 @@ class ScriptListener(gobject.GObject):
 
         self._wrapped = xpcom.server.WrapObject( \
                 self, interfaces.nsIWebProgressListener)
-        
-        self.scripts_path = os.path.join(activity.get_activity_root(),
-                                         'data/userscripts')
-
+    
     def onLocationChange(self, webProgress, request, location):
         if location.spec.endswith('.user.js'):
             self.emit('userscript-found', location.spec)
         else:
             # TODO load scripts according to domain regex
-            for i in os.listdir(self.scripts_path):                
-                script_path = os.path.join(self.scripts_path, i)
+            for i in os.listdir(SCRIPTS_PATH):                
+                script_path = os.path.join(SCRIPTS_PATH, i)
                 self.emit('userscript-inject', script_path)
 
     def setup(self, browser):
