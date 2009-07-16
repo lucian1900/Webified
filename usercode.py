@@ -31,8 +31,8 @@ from sugar.activity import activity
 from sugar.graphics import style
 from sugar.graphics.icon import Icon
 
-from sourceedit import SourceView
-from jarabe.view.viewsource import FileViewer #HACK
+from jarabe.view import viewsource
+
 
 SCRIPTS_PATH = os.path.join(activity.get_activity_root(),
                             'data/userscripts')
@@ -43,14 +43,54 @@ class Dialog(gtk.Window):
     def __init__(self, width=None, height=None):        
         self.width = width or int(gtk.gdk.screen_width()/2)
         self.height = height or int(gtk.gdk.screen_height()/1.5)
-        
+
         gtk.Window.__init__(self)
         self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
         self.set_default_size(self.width, self.height)
-        
+
     def show(self):
         self.show_all()
         gtk.Window.show(self)
+
+class SourceEditor(viewsource.SourceDisplay):
+    def __init__(self):
+        viewsource.SourceDisplay.__init__(self)
+        
+        self._source_view.set_editable(True)
+        
+    def get_text(self):
+        start = self._buffer.get_start_iter()
+        end = self._buffer.get_end_iter()
+        return self._buffer.get_text(start, end)
+
+    def set_text(self, text):
+        self._buffer.set_text(text)
+
+    text = property(get_text, set_text)
+    
+    def write(self, path=None):
+        open(path or self.file_path, 'w').write(self.text)
+
+class ScriptFileViewer(viewsource.FileViewer):
+    def __init__(self, path):
+        initial_filename = os.listdir(path)[0]
+        viewsource.FileViewer.__init__(self, path, initial_filename)
+
+    def get_selected_file(self):
+        # HACK
+        selection = self._tree_view.get_selection()
+        model, tree_iter = selection.get_selected()
+        if tree_iter is None:
+            return None
+        else:
+            return model.get_value(tree_iter, 1)
+
+    def remove_file(self, file_path):
+        model = self._tree_view.get_model()
+        for i in model:
+            if i[0] == os.path.basename(file_path):
+                model.remove(model.get_iter(i.path))
+                break
 
 class StyleEditor(Dialog):
     __gsignals__ = {
@@ -64,9 +104,9 @@ class StyleEditor(Dialog):
         # layout
         vbox = gtk.VBox()
         
-        self.editor = SourceView()
-        self.editor.file_path = STYLE_PATH
-        vbox.pack_start(self.editor)
+        self._editor = SourceEditor()
+        self._editor.file_path = STYLE_PATH
+        vbox.pack_start(self._editor)
         
         # buttons
         buttonbox = gtk.HBox()
@@ -81,12 +121,12 @@ class StyleEditor(Dialog):
         self._save_button.connect('clicked', self._save_button_cb)
         buttonbox.pack_start(self._save_button)
                                    
-        vbox.pack_start(buttonbox)
+        vbox.pack_start(buttonbox, expand=False)
         
         self.add(vbox)
 
     def _save_button_cb(self, button):
-        self.editor.write()
+        self._editor.write()
         self.emit('userstyle-changed')
         self.destroy()
         
@@ -100,13 +140,13 @@ class ScriptEditor(Dialog):
         # layout
         hbox = gtk.HBox()
         
-        self.fileview = FileViewer(SCRIPTS_PATH, 'test.user.js')
-        self.fileview.connect('file-selected', self._file_selected_cb)
-        hbox.pack_start(self.fileview)
+        self._fileview = ScriptFileViewer(SCRIPTS_PATH)
+        self._fileview.connect('file-selected', self._file_selected_cb)
+        hbox.pack_start(self._fileview)
         
         editbox = gtk.VBox()        
-        self.editor = SourceView()
-        editbox.pack_start(self.editor)
+        self._editor = SourceEditor()
+        editbox.pack_start(self._editor)
                                         
         buttonbox = gtk.HBox()
 
@@ -125,45 +165,29 @@ class ScriptEditor(Dialog):
         self._save_button.connect('clicked', self._save_button_cb)
         buttonbox.pack_start(self._save_button)
         
-        editbox.pack_start(buttonbox)
+        editbox.pack_start(buttonbox, expand=False)
         hbox.pack_start(editbox)
         
         self.add(hbox)
         
-        # HACK
-        self._file_selected_cb(self.fileview, 
-                               self.fileview._initial_filename)
-
-    def _get_selected_file(self):
-        # HACK
-        selection = self.fileview._tree_view.get_selection()
-        model, tree_iter = selection.get_selected()
-        if tree_iter is None:
-            return None
-        else:
-            return model.get_value(tree_iter, 1)
+        self._file_selected_cb(self._fileview, 
+                               self._fileview._initial_filename)
     
     def _save_button_cb(self, button):
-        self.editor.write()
+        self._editor.write()
         
     def _delete_button_cb(self, button):
-        file_path = self._get_selected_file()
-                
-        # HACK remove from model
-        model = self.fileview._tree_view.get_model()
-        for i in model:
-            if i[0] == os.path.basename(file_path):
-                model.remove(model.get_iter(i.path))
-                break
+        file_path = self._fileview.get_selected_file()
         
-        # remove actual file
+        self._fileview.remove_file(file_path)
         os.remove(file_path)
         
     def _cancel_button_cb(self, button):
         self.destroy()
         
     def _file_selected_cb(self, view, file_path):
-        self.editor.file_path = self._get_selected_file()
+        self._editor.file_path = self._fileview.get_selected_file()
+
 
 def add_script(location):
     cls = components.classes["@mozilla.org/network/io-service;1"]
@@ -191,9 +215,9 @@ class Injector():
     def __init__(self, script_path):
         self.script_path = script_path
              
-        self._wrapped = xpcom.server.WrapObject(
-            self, interfaces.nsIDOMEventListener)
-
+        self._wrapped = xpcom.server.WrapObject(self,
+                                                interfaces.nsIDOMEventListener)
+    
     def handleEvent(self, event):
         self.head.appendChild(self.script)
     
@@ -202,12 +226,11 @@ class Injector():
         self.script = window.document.createElement('script')
         self.script.type = 'text/javascript'
         #self.script.src = 'file://' + self.script_path # XSS security fail
-        
         text = open(self.script_path,'r').read()
         self.script.appendChild( window.document.createTextNode(text) )
         
         # reference to head
-        self.head = window.document.getElementsByTagName('head').item(0)   
+        self.head = window.document.getElementsByTagName('head').item(0)
         
         # actual attaching
         window.addEventListener('load', self._wrapped, False)
