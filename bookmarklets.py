@@ -28,7 +28,8 @@ def get_store():
     if _store is None:
         _store = BookmarkletStore()
     return _store
-    
+
+
 class BookmarkletStore(gobject.GObject):
     __gsignals__ = {
         'add_bookmarklet': (gobject.SIGNAL_RUN_FIRST,
@@ -82,5 +83,3 @@ class BookmarkletStore(gobject.GObject):
         # we don't care if the bookmarklet was added just now
         if self._config.has_section(name) and self.get(name) == url:
             self.emit('add_bookmarklet', name)
-        
-

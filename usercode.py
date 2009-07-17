@@ -31,7 +31,7 @@ from sugar.activity import activity
 from sugar.graphics import style
 from sugar.graphics.icon import Icon
 
-from jarabe.view import viewsource
+import viewsource
 
 
 SCRIPTS_PATH = os.path.join(activity.get_activity_root(),
@@ -77,7 +77,6 @@ class ScriptFileViewer(viewsource.FileViewer):
         viewsource.FileViewer.__init__(self, path, initial_filename)
 
     def get_selected_file(self):
-        # HACK
         selection = self._tree_view.get_selection()
         model, tree_iter = selection.get_selected()
         if tree_iter is None:
@@ -142,14 +141,14 @@ class ScriptEditor(Dialog):
         
         self._fileview = ScriptFileViewer(SCRIPTS_PATH)
         self._fileview.connect('file-selected', self._file_selected_cb)
-        hbox.pack_start(self._fileview)
+        hbox.pack_start(self._fileview, expand=False)
         
         editbox = gtk.VBox()        
         self._editor = SourceEditor()
         editbox.pack_start(self._editor)
-                                        
+              
         buttonbox = gtk.HBox()
-
+        
         self._cancel_button = gtk.Button(label=_('Close'))
         self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
         self._cancel_button.connect('clicked', self._cancel_button_cb)
