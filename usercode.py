@@ -205,7 +205,10 @@ def add_script(location):
 
     logging.debug('##### %s -> %s' % (location_uri.spec, file_uri.spec))
 
-    os.remove(file_path)
+    # make sure the file doesn't already exist
+    try: os.remove(file_path)
+    except OSError: pass
+    
     browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
 
 def script_exists(location):

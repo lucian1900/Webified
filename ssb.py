@@ -23,21 +23,40 @@ import logging
 import functools
 
 from sugar.activity import activity
-from sugar.activity import bundlebuilder
 from sugar.bundle.activitybundle import ActivityBundle
 from sugar.datastore import datastore
 from sugar import profile
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
 
+IGNORE_DIRS = ['dist', '.git']
+IGNORE_FILES = ['.gitignore', 'MANIFEST', '*.pyc', '*~', '*.bak', 
+                'pseudo.po', '.DS_STORE']
+
 def get_is_ssb(activity):
     '''determine if the activity is an SSB'''
     return activity.get_bundle_id().startswith(DOMAIN_PREFIX)
 
-# freeze some arguments, equivalent to def list_files(path): ...
-list_files = functools.partial(bundlebuilder.list_files,
-                ignore_dirs=bundlebuilder.IGNORE_DIRS, 
-                ignore_files=bundlebuilder.IGNORE_FILES.append('.DS_STORE'))
+def list_files(base_dir, ignore_dirs=None, ignore_files=None):
+    result = []
+
+    base_dir = os.path.abspath(base_dir)
+
+    for root, dirs, files in os.walk(base_dir):
+        if ignore_files:
+            for pattern in ignore_files:
+                files = [f for f in files if not fnmatch(f, pattern)]
+
+        rel_path = root[len(base_dir) + 1:]
+        for f in files:
+            result.append(os.path.join(rel_path, f))
+
+        if ignore_dirs and root == base_dir:
+            for ignore in ignore_dirs:
+                if ignore in dirs:
+                    dirs.remove(ignore)
+
+    return result
 
 def remove_paths(paths, root=None):
     '''remove all paths in the list, fail silently'''
@@ -132,7 +151,7 @@ class SSBCreator(object):
                      root=os.path.join(ssb_data_path, 'gecko'))
 
         # create MANIFEST
-        files = list_files(self.ssb_path)
+        files = list_files(self.ssb_path, IGNORE_DIRS, IGNORE_FILES)
         f = open(os.path.join(self.ssb_path, 'MANIFEST'), 'w')
         for i in files:
             f.write(i+'\n')
