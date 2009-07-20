@@ -148,6 +148,8 @@ class ViewSource(gtk.Window):
         
         if document_path is not None:
             self._select_source(document_path)
+        
+        logging.debug('@@@@@ %s' % document_path)
 
     def _calculate_char_width(self, char_count):
         widget = gtk.Label('')

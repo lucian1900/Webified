@@ -166,6 +166,7 @@ import globalhistory
 import filepicker
 import bookmarklets
 import usercode
+import viewsource
 
 _LIBRARY_PATH = '/usr/share/library-common/index.html'
 
@@ -262,7 +263,7 @@ class WebActivity(activity.Activity):
             f = open(os.path.join(activity.get_bundle_path(),
                                   'data/homepage'))
             self.homepage = f.read()
-            f.close()            
+            f.close()
             
         # enable userscript saving
         self._browser.userscript.connect('userscript-found',
@@ -528,7 +529,7 @@ class WebActivity(activity.Activity):
         alert.props.msg = _('"%s" already exists. Overwrite?') % name
         alert.connect('response', self._overwrite_bookmarklet_response_cb)
         
-        # send the arguments through the alert
+        # send the arguments through the alert object
         alert._bm = (name, url)
         
         self.add_alert(alert)
@@ -544,9 +545,13 @@ class WebActivity(activity.Activity):
     def _userscript_found_cb(self, listener, location):
         alert = ConfirmationAlert()
         alert.props.title = _('Add userscript')
-        alert.props.msg = _('Do you want to add this userscript?')
+        if usercode.script_exists(location):
+            alert.props.msg = _('Userscript already exists. Overwrite?') 
+        else:
+            alert.props.msg = _('Do you want to add this userscript?')    
         alert.connect('response', self._userscript_found_response_cb)
-        
+                
+        # send the argument through the alert object
         alert._location = location
         
         self.add_alert(alert)
@@ -660,5 +665,14 @@ class WebActivity(activity.Activity):
             downloadmanager.remove_all_downloads()
             self.close(force=True)
 
-    def get_document_path(self, async_cb, async_err_cb):
-        self._browser.get_source(async_cb, async_err_cb)
+    def handle_view_source(self):     
+        logging.debug('##### local view source') 
+        logging.debug('@@@@@ %s' % usercode.STYLE_PATH)  
+        view_source = viewsource.ViewSource(self.get_xid(),                 
+                                            self.get_bundle_path(),
+                                            usercode.STYLE_PATH,
+                                            self.get_title())
+        #view_source.show()
+
+    #def get_document_path(self, async_cb, async_err_cb):
+    #    self._browser.get_source(async_cb, async_err_cb)

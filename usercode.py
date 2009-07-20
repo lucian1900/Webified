@@ -205,8 +205,18 @@ def add_script(location):
 
     logging.debug('##### %s -> %s' % (location_uri.spec, file_uri.spec))
 
+    os.remove(file_path)
     browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
 
+def script_exists(location):
+    cls = components.classes["@mozilla.org/network/io-service;1"]
+    io_service = cls.getService(interfaces.nsIIOService)
+    location_uri = io_service.newURI(location, None, None)
+    
+    if os.path.isfile(os.path.join(SCRIPTS_PATH, location_uri.path)):
+        return True
+    else:
+        return False
 
 class Injector():
     _com_interfaces_ = interfaces.nsIDOMEventListener
