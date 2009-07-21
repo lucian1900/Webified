@@ -412,6 +412,23 @@ class WebActivity(activity.Activity):
             default_page = os.path.join(activity.get_bundle_path(), 
                                         "data/index.html")
             self._browser.load_uri(default_page)
+            
+        cls = components.classes["@mozilla.org/network/io-service;1"]
+        io_service = cls.getService(interfaces.nsIIOService)
+
+        cls = components.classes[ \
+                    '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
+        browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
+        
+        
+        file_path = os.path.join(activity.get_activity_root(),
+                                 'data/saved/x.html')
+        file_uri = io_service.newURI('file://'+file_path)
+        data_path = os.path.join(activity.get_activity_root(), 'data/saved/x')
+        data_uri = io_service.newURI('file://'+data_path)
+        
+        browser_persist.saveDocument(None, file_uri, data_uri, None, None, 
+                                     None)
 
     def _session_history_changed_cb(self, session_history, link):
         _logger.debug('NewPage: %s.' %link)

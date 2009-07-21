@@ -112,24 +112,24 @@ class StyleEditor(Dialog):
         
         self._cancel_button = gtk.Button(label=_('Cancel'))
         self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
-        self._cancel_button.connect('clicked', self._cancel_button_cb)
+        self._cancel_button.connect('clicked', self.__cancel_button_cb)
         buttonbox.pack_start(self._cancel_button)
         
         self._save_button = gtk.Button(label=_('Save'))
         self._save_button.set_image(Icon(icon_name='dialog-ok'))
-        self._save_button.connect('clicked', self._save_button_cb)
+        self._save_button.connect('clicked', self.__save_button_cb)
         buttonbox.pack_start(self._save_button)
                                    
         vbox.pack_start(buttonbox, expand=False)
         
         self.add(vbox)
 
-    def _save_button_cb(self, button):
+    def __save_button_cb(self, button):
         self._editor.write()
         self.emit('userstyle-changed')
         self.destroy()
         
-    def _cancel_button_cb(self, button):
+    def __cancel_button_cb(self, button):
         self.destroy()
 
 class ScriptEditor(Dialog):
@@ -140,7 +140,7 @@ class ScriptEditor(Dialog):
         hbox = gtk.HBox()
         
         self._fileview = ScriptFileViewer(SCRIPTS_PATH)
-        self._fileview.connect('file-selected', self._file_selected_cb)
+        self._fileview.connect('file-selected', self.__file_selected_cb)
         hbox.pack_start(self._fileview, expand=False)
         
         editbox = gtk.VBox()        
@@ -151,17 +151,17 @@ class ScriptEditor(Dialog):
         
         self._cancel_button = gtk.Button(label=_('Close'))
         self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
-        self._cancel_button.connect('clicked', self._cancel_button_cb)
+        self._cancel_button.connect('clicked', self.__cancel_button_cb)
         buttonbox.pack_start(self._cancel_button)
         
         self._delete_button = gtk.Button(label=_('Delete'))
         self._delete_button.set_image(Icon(icon_name='stock_delete'))
-        self._delete_button.connect('clicked', self._delete_button_cb)
+        self._delete_button.connect('clicked', self.__delete_button_cb)
         buttonbox.pack_start(self._delete_button)
         
         self._save_button = gtk.Button(label=_('Save'))
         self._save_button.set_image(Icon(icon_name='dialog-ok'))
-        self._save_button.connect('clicked', self._save_button_cb)
+        self._save_button.connect('clicked', self.__save_button_cb)
         buttonbox.pack_start(self._save_button)
         
         editbox.pack_start(buttonbox, expand=False)
@@ -169,22 +169,22 @@ class ScriptEditor(Dialog):
         
         self.add(hbox)
         
-        self._file_selected_cb(self._fileview, 
+        self.__file_selected_cb(self._fileview, 
                                self._fileview._initial_filename)
     
-    def _save_button_cb(self, button):
+    def __save_button_cb(self, button):
         self._editor.write()
         
-    def _delete_button_cb(self, button):
+    def __delete_button_cb(self, button):
         file_path = self._fileview.get_selected_file()
         
         self._fileview.remove_file(file_path)
         os.remove(file_path)
         
-    def _cancel_button_cb(self, button):
+    def __cancel_button_cb(self, button):
         self.destroy()
         
-    def _file_selected_cb(self, view, file_path):
+    def __file_selected_cb(self, view, file_path):
         self._editor.file_path = self._fileview.get_selected_file()
 
 

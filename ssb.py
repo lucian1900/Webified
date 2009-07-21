@@ -20,7 +20,7 @@ import tempfile
 import zipfile
 import ConfigParser
 import logging
-import functools
+from fnmatch import fnmatch
 
 from sugar.activity import activity
 from sugar.bundle.activitybundle import ActivityBundle
