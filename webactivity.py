@@ -134,6 +134,7 @@ hulahop.set_app_version(os.environ['SUGAR_BUNDLE_VERSION'])
 hulahop.startup(_profile_path)
 
 from xpcom import components
+from xpcom.components import interfaces
 
 def _set_accept_languages():
     ''' Set intl.accept_languages based on the locale
@@ -413,23 +414,6 @@ class WebActivity(activity.Activity):
                                         "data/index.html")
             self._browser.load_uri(default_page)
             
-        cls = components.classes["@mozilla.org/network/io-service;1"]
-        io_service = cls.getService(interfaces.nsIIOService)
-
-        cls = components.classes[ \
-                    '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
-        browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
-        
-        
-        file_path = os.path.join(activity.get_activity_root(),
-                                 'data/saved/x.html')
-        file_uri = io_service.newURI('file://'+file_path)
-        data_path = os.path.join(activity.get_activity_root(), 'data/saved/x')
-        data_uri = io_service.newURI('file://'+data_path)
-        
-        browser_persist.saveDocument(None, file_uri, data_uri, None, None, 
-                                     None)
-
     def _session_history_changed_cb(self, session_history, link):
         _logger.debug('NewPage: %s.' %link)
         self.current = link
@@ -554,7 +538,7 @@ class WebActivity(activity.Activity):
     def _overwrite_bookmarklet_response_cb(self, alert, response_id):
         self.remove_alert(alert)
         
-        name, url = alert._bm
+        name, url = alert._bm # unpack the argument
         if response_id is gtk.RESPONSE_OK:
             self._bm_store.remove(name)
             self._bm_store.add(name, url)
@@ -579,7 +563,8 @@ class WebActivity(activity.Activity):
         if response_id is gtk.RESPONSE_OK:
             usercode.add_script(alert._location)
             
-    def _userscript_inject_cb(self, listener, script_path):        
+    def _userscript_inject_cb(self, listener, script_path):
+        logging.debug('Injecting %s' % script_path)      
         usercode.Injector(script_path).attach_to(self._browser.dom_window)
         
     def _add_link(self):
@@ -682,14 +667,14 @@ class WebActivity(activity.Activity):
             downloadmanager.remove_all_downloads()
             self.close(force=True)
 
-    def handle_view_source(self):     
-        logging.debug('##### local view source') 
-        logging.debug('@@@@@ %s' % usercode.STYLE_PATH)  
-        view_source = viewsource.ViewSource(self.get_xid(),                 
-                                            self.get_bundle_path(),
-                                            usercode.STYLE_PATH,
-                                            self.get_title())
-        #view_source.show()
+    #def handle_view_source(self):     
+    #    logging.debug('##### local view source') 
+    #    logging.debug('@@@@@ %s' % usercode.STYLE_PATH)  
+    #    view_source = viewsource.ViewSource(self.get_xid(),                 
+    #                                        self.get_bundle_path(),
+    #                                        usercode.STYLE_PATH,
+    #                                        self.get_title())
+    #    view_source.show()
 
-    #def get_document_path(self, async_cb, async_err_cb):
-    #    self._browser.get_source(async_cb, async_err_cb)
+    def get_document_path(self, async_cb, async_err_cb):
+        self._browser.get_source(async_cb, async_err_cb)

@@ -14,8 +14,8 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import shutil
 import os
+import shutil
 import tempfile
 import zipfile
 import ConfigParser
@@ -23,7 +23,7 @@ import logging
 from fnmatch import fnmatch
 
 from sugar.activity import activity
-from sugar.bundle.activitybundle import ActivityBundle
+from sugar.bundle import activitybundle
 from sugar.datastore import datastore
 from sugar import profile
 
@@ -36,8 +36,25 @@ IGNORE_FILES = ['.gitignore', 'MANIFEST', '*.pyc', '*~', '*.bak',
 def get_is_ssb(activity):
     '''determine if the activity is an SSB'''
     return activity.get_bundle_id().startswith(DOMAIN_PREFIX)
+    
+def copy_profile():
+    '''get the data from the bundle and into the profile'''
+    ssb_data_path = os.path.join(activity.get_bundle_path(), 'data/ssb_data')
+    data_path = os.path.join(activity.get_activity_root(), 'data')
+
+    if os.path.isdir(ssb_data_path):
+        # we can't use shutil.copytree for the entire dir
+        for i in os.listdir(ssb_data_path):
+            src = os.path.join(ssb_data_path, i)
+            dst = os.path.join(data_path, i)
+            if not os.path.exists(dst):
+                if os.path.isdir(src):
+                    shutil.copytree(src, dst)
+                else: # is there a better way?
+                    shutil.copy(src, dst)
 
 def list_files(base_dir, ignore_dirs=None, ignore_files=None):
+    '''from bundlebuilder.py'''
     result = []
 
     base_dir = os.path.abspath(base_dir)
@@ -71,22 +88,6 @@ def remove_paths(paths, root=None):
                 os.remove(path)
         except OSError:
             logging.warning('failed to remove: ' + path)
-
-def copy_profile():
-    '''get the data from the bundle and into the profile'''
-    ssb_data_path = os.path.join(activity.get_bundle_path(), 'data/ssb_data')
-    data_path = os.path.join(activity.get_activity_root(), 'data')
-
-    if os.path.isdir(ssb_data_path):
-        # we can't use shutil.copytree for the entire dir
-        for i in os.listdir(ssb_data_path):
-            src = os.path.join(ssb_data_path, i)
-            dst = os.path.join(data_path, i)
-            if not os.path.exists(dst):
-                if os.path.isdir(src):
-                    shutil.copytree(src, dst)
-                else: # is there a better way?
-                    shutil.copy(src, dst)
 
 class SSBCreator(object):
     def __init__(self, title, uri):
@@ -145,7 +146,7 @@ class SSBCreator(object):
         # copy profile
         ssb_data_path = os.path.join(self.ssb_path, 'data/ssb_data')
         shutil.copytree(self.data_path, ssb_data_path)
-                      
+        
         # delete undesirable things from the profile
         remove_paths(['Cache', 'cookies.sqlite'],
                      root=os.path.join(ssb_data_path, 'gecko'))
@@ -172,7 +173,7 @@ class SSBCreator(object):
         
     def install(self):
         '''install the generated .xo bundle'''
-        bundle = ActivityBundle(self.xo_path)
+        bundle = activitybundle.ActivityBundle(self.xo_path)
         bundle.install()
         
     def show_in_journal(self):

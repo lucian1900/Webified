@@ -16,6 +16,7 @@
 
 import os
 import logging
+from urlparse import urlparse
 from gettext import gettext as _
 
 import gobject
@@ -38,6 +39,12 @@ SCRIPTS_PATH = os.path.join(activity.get_activity_root(),
                             'data/userscripts')
 STYLE_PATH = os.path.join(activity.get_activity_root(),
                           'data/style.user.css')
+                          
+# make sure the userscript dir exists
+if not os.path.isdir(SCRIPTS_PATH):
+    os.mkdir(SCRIPTS_PATH)
+# make sure userstyle sheet exists
+open(STYLE_PATH, 'w').close()
 
 class Dialog(gtk.Window):
     def __init__(self, width=None, height=None):        
@@ -70,10 +77,12 @@ class SourceEditor(viewsource.SourceDisplay):
     
     def write(self, path=None):
         open(path or self.file_path, 'w').write(self.text)
+        logging.debug('@@@@@ %s %s %s' % (self.text, path, self.file_path))
 
 class ScriptFileViewer(viewsource.FileViewer):
     def __init__(self, path):
-        initial_filename = os.listdir(path)[0]
+        ls = os.listdir(path)
+        initial_filename = ls[0] if len(ls) > 0 else None
         viewsource.FileViewer.__init__(self, path, initial_filename)
 
     def get_selected_file(self):
@@ -187,7 +196,6 @@ class ScriptEditor(Dialog):
     def __file_selected_cb(self, view, file_path):
         self._editor.file_path = self._fileview.get_selected_file()
 
-
 def add_script(location):
     cls = components.classes["@mozilla.org/network/io-service;1"]
     io_service = cls.getService(interfaces.nsIIOService)
@@ -212,14 +220,30 @@ def add_script(location):
     browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
 
 def script_exists(location):
-    cls = components.classes["@mozilla.org/network/io-service;1"]
-    io_service = cls.getService(interfaces.nsIIOService)
-    location_uri = io_service.newURI(location, None, None)
-    
-    if os.path.isfile(os.path.join(SCRIPTS_PATH, location_uri.path)):
+    script_name = os.path.basename(urlparse(location).path)
+        
+    if os.path.isfile(os.path.join(SCRIPTS_PATH, script_name)):
         return True
     else:
         return False
+        
+def save_document(browser):
+    cls = components.classes["@mozilla.org/network/io-service;1"]
+    io_service = cls.getService(interfaces.nsIIOService)
+
+    cls = components.classes[ \
+                '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
+    browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
+    
+    
+    file_path = os.path.join(activity.get_activity_root(),
+                             'data/saved/x.html')
+    file_uri = io_service.newURI('file://'+file_path, None, None)
+    data_path = os.path.join(activity.get_activity_root(), 'data/saved/x')
+    data_uri = io_service.newURI('file://'+data_path, None, None)
+    
+    browser_persist.saveDocument(browser.dom_window.document,
+                                 file_uri, data_uri, None, 0, 0)
 
 class Injector():
     _com_interfaces_ = interfaces.nsIDOMEventListener
@@ -232,6 +256,7 @@ class Injector():
     
     def handleEvent(self, event):
         self.head.appendChild(self.script)
+        logging.debug('%^^%^^ actual inject')
     
     def attach_to(self, window):
         # set up the script element to be injected
