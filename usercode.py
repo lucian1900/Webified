@@ -255,10 +255,12 @@ class Injector():
                                                 interfaces.nsIDOMEventListener)
     
     def handleEvent(self, event):
+        logging.debug('***** finish inject')
+        logging.debug('***** %s' % self.head.innerHTML)
         self.head.appendChild(self.script)
-        logging.debug('%^^%^^ actual inject')
     
     def attach_to(self, window):
+        logging.debug('***** starting inject')
         # set up the script element to be injected
         self.script = window.document.createElement('script')
         self.script.type = 'text/javascript'
@@ -271,6 +273,8 @@ class Injector():
         
         # actual attaching
         window.addEventListener('load', self._wrapped, False)
+        logging.debug('***** injecting ...')
+        
     
 class ScriptListener(gobject.GObject):
     _com_interfaces_ = interfaces.nsIWebProgressListener

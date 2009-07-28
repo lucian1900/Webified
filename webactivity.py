@@ -544,6 +544,7 @@ class WebActivity(activity.Activity):
             self._bm_store.add(name, url)
             
     def _userscript_found_cb(self, listener, location):
+        '''Ask user whether to install the userscript'''
         alert = ConfirmationAlert()
         alert.props.title = _('Add userscript')
         if usercode.script_exists(location):
@@ -564,7 +565,7 @@ class WebActivity(activity.Activity):
             usercode.add_script(alert._location)
             
     def _userscript_inject_cb(self, listener, script_path):
-        logging.debug('Injecting %s' % script_path)      
+        logging.debug('Injecting %s' % script_path)    
         usercode.Injector(script_path).attach_to(self._browser.dom_window)
         
     def _add_link(self):

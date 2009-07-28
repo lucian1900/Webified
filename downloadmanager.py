@@ -295,6 +295,11 @@ components.registrar.registerFactory('{23c51569-e9a1-4a92-adeb-3723db82ef7c}',
 def save_link(url, text, owner_document):
     # Inspired on Firefox' browser/base/content/nsContextMenu.js:saveLink()
 
+    # HACK, workaround for ticket #1029
+    if url.startswith('data:'):
+        save_data_uri(url, text, owner_document)
+        return
+
     cls = components.classes["@mozilla.org/network/io-service;1"]
     io_service = cls.getService(interfaces.nsIIOService)
     uri = io_service.newURI(url, None, None)
@@ -309,7 +314,6 @@ def save_link(url, text, owner_document):
         interfaces.nsIRequest.LOAD_BYPASS_CACHE | \
         interfaces.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS
 
-    # if _implements_interface(channel, interfaces.nsIHttpChannel): # trac#1029
     if _implements_interface(channel, interfaces.nsIHttpChannel):
         channel.referrer = io_service.newURI(owner_document.documentURI, None,
                                              None)
@@ -320,11 +324,54 @@ def save_link(url, text, owner_document):
             interfaces.nsIStreamListener)
     channel.asyncOpen(listener, None)
 
+def save_data_uri(url, text, owner_document):
+    '''Special case, workaround for ticket #1029'''
+    import base64
+    import re
+    
+    pattern = re.compile(r'''
+                  ^data:  
+                  (\w+/\w+)?            # mimetype
+                  (?:;charset="(\w+)")? # charset
+                  (?:;(base64))?        # encoding
+                  ,(.+)                 # actual data
+                  $
+                  ''', re.VERBOSE)
+    result = re.search(pattern, url).groups()
+    logging.debug('^^^^^ %s' % str(result))
+    
+    mime = result[0] or 'text/plain'
+    charset = result[1] or 'US-ASCII'
+    encoding = result[2] or 'base64'
+    data = base64.decodestring(result[3])
+    
+    temp_path = os.path.join(activity.get_activity_root(), 'instance')
+    if not os.path.exists(temp_path):
+        os.makedirs(temp_path)
+    fd, file_path = tempfile.mkstemp(dir=temp_path, prefix='datauri',
+                                     suffix='')
+    os.close(fd)
+    os.chmod(file_path, 0644)
+    
+    # write data to file
+    open(file_path, 'w').write(data)
+    
+    jobject = datastore.create()
+    jobject.metadata['title'] = 'datauri'
+    jobject.metadata['mime_type'] = mime
+    jobject.metadata['icon-color'] = profile.get_color().to_string()
+    jobject.file_path = file_path
+    
+    datastore.write(jobject)
+    activity.show_object_in_journal(jobject.object_id)
+    
+
 def _implements_interface(obj, interface):
     try:
         obj.QueryInterface(interface)
         return True
     except xpcom.Exception, e:
+        logging.debug('***** %s' % e.errno)
         if e.errno == NS_NOINTERFACE:
             return False
         else:
