@@ -288,6 +288,12 @@ class WebToolbar(gtk.Toolbar):
         self._create_ssb.connect('clicked', self._create_ssb_clicked_cb)
         self.insert(self._create_ssb, -1)
         self._create_ssb.show()
+        
+        self._save_document = ToolButton('save')
+        self._save_document.set_tooltip(_('Save Document'))
+        self._save_document.connect('clicked', self._save_document_clicked_cb)
+        self.insert(self._save_document, -1)
+        self._save_document.show()
 
     def _session_history_changed_cb(self, session_history, current_page_index):
         # We have to wait until the history info is updated.
@@ -468,3 +474,7 @@ class WebToolbar(gtk.Toolbar):
                 self._ssb.show_in_journal()
             else:
                 self._ssb.install()
+                
+    def _save_document_clicked_cb(self, button):
+        import usercode
+        usercode.save_document(self._activity._browser)

@@ -201,27 +201,26 @@ def add_script(location):
     
     cls = components.classes[ \
                         '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
-    browser_persist = cls.createInstance(interfaces.nsIWebBrowserPersist)
-    browser_persist.persistFlags = interfaces.nsIWebBrowserPersist \
+    persist = cls.createInstance(interfaces.nsIWebBrowserPersist)
+    persist.persistFlags = interfaces.nsIWebBrowserPersist \
                                      .PERSIST_FLAGS_REPLACE_EXISTING_FILES
 
     cls = components.classes["@mozilla.org/network/io-service;1"]
-    io_service = cls.getService(interfaces.nsIIOService)
-    location_uri = io_service.newURI(location, None, None)
+    uri = cls.getService(interfaces.nsIIOService).newURI(location, None, None)
     
     cls = components.classes["@mozilla.org/file/local;1"]
     local_file = cls.createInstance(interfaces.nsILocalFile)
     
-    file_name = os.path.basename(location_uri.path)
+    file_name = os.path.basename(uri.path)
     file_path = os.path.join(SCRIPTS_PATH, file_name)
     local_file.initWithPath(file_path)
     if not local_file.exists():
         local_file.create(0x00, 0644)
 
     logging.debug('Saving userscript %s -> %s' % \
-                            (location_uri.spec, file_path))
+                            (uri.spec, file_path))
     
-    browser_persist.saveURI(location_uri, None, None, None, None, local_file)
+    persist.saveURI(uri, None, None, None, None, local_file)
 
 def script_exists(location):
     script_name = os.path.basename(urlparse(location).path)
@@ -229,22 +228,25 @@ def script_exists(location):
     return os.path.isfile(os.path.join(SCRIPTS_PATH, script_name))
 
 def save_document(browser):
-    cls = components.classes["@mozilla.org/network/io-service;1"]
-    io_service = cls.getService(interfaces.nsIIOService)
-
     cls = components.classes[ \
-                '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
-    browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
+                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
+    persist = cls.createInstance(interfaces.nsIWebBrowserPersist)
+    persist.persistFlags = interfaces.nsIWebBrowserPersist \
+                                     .PERSIST_FLAGS_REPLACE_EXISTING_FILES
+                                     
+    local = components.classes["@mozilla.org/file/local;1"]
+    local_file = local.createInstance(interfaces.nsILocalFile)
+    local_data = local.createInstance(interfaces.nsILocalFile)
     
+    file_path = '/media/desktop/saved/x.html'                         
+    local_file.initWithPath(file_path)
     
-    file_path = os.path.join(activity.get_activity_root(),
-                             'data/saved/x.html')
-    file_uri = io_service.newURI('file://'+file_path, None, None)
-    data_path = os.path.join(activity.get_activity_root(), 'data/saved/x')
-    data_uri = io_service.newURI('file://'+data_path, None, None)
+    data_path = '/media/desktop/saved/x'
+    local_data.initWithPath(data_path)
     
-    browser_persist.saveDocument(browser.dom_window.document,
-                                 file_uri, data_uri, None, 0, 0)
+
+    persist.saveDocument(browser.dom_window.document,
+                                 local_file, local_data, None, 0, 0)
 
 class Injector():
     _com_interfaces_ = interfaces.nsIDOMEventListener
