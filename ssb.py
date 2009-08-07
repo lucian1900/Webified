@@ -148,7 +148,7 @@ class SSBCreator(object):
         shutil.copytree(self.data_path, ssb_data_path)
         
         # delete undesirable things from the profile
-        remove_paths(['Cache', 'cookies.sqlite'],
+        remove_paths(['Cache', 'cookies.sqlite', 'Google Gears for Firefox'],
                      root=os.path.join(ssb_data_path, 'gecko'))
 
         # create MANIFEST

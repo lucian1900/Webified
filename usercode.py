@@ -197,36 +197,37 @@ class ScriptEditor(Dialog):
         self._editor.file_path = self._fileview.get_selected_file()
 
 def add_script(location):
-    cls = components.classes["@mozilla.org/network/io-service;1"]
-    io_service = cls.getService(interfaces.nsIIOService)
-
+    '''Inspired by https://developer.mozilla.org/en/nsIWebBrowserPersist'''
+    
     cls = components.classes[ \
                         '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
-    browser_persist = cls.getService(interfaces.nsIWebBrowserPersist)
+    browser_persist = cls.createInstance(interfaces.nsIWebBrowserPersist)
+    browser_persist.persistFlags = interfaces.nsIWebBrowserPersist \
+                                     .PERSIST_FLAGS_REPLACE_EXISTING_FILES
 
-
+    cls = components.classes["@mozilla.org/network/io-service;1"]
+    io_service = cls.getService(interfaces.nsIIOService)
     location_uri = io_service.newURI(location, None, None)
-
+    
+    cls = components.classes["@mozilla.org/file/local;1"]
+    local_file = cls.createInstance(interfaces.nsILocalFile)
+    
     file_name = os.path.basename(location_uri.path)
     file_path = os.path.join(SCRIPTS_PATH, file_name)
-    file_uri = io_service.newURI('file://'+file_path, None, None)
+    local_file.initWithPath(file_path)
+    if not local_file.exists():
+        local_file.create(0x00, 0644)
 
-    logging.debug('##### %s -> %s' % (location_uri.spec, file_uri.spec))
-
-    # make sure the file doesn't already exist
-    try: os.remove(file_path)
-    except OSError: pass
+    logging.debug('Saving userscript %s -> %s' % \
+                            (location_uri.spec, file_path))
     
-    browser_persist.saveURI(location_uri, None, None, None, None, file_uri)
+    browser_persist.saveURI(location_uri, None, None, None, None, local_file)
 
 def script_exists(location):
     script_name = os.path.basename(urlparse(location).path)
-        
-    if os.path.isfile(os.path.join(SCRIPTS_PATH, script_name)):
-        return True
-    else:
-        return False
-        
+    
+    return os.path.isfile(os.path.join(SCRIPTS_PATH, script_name))
+
 def save_document(browser):
     cls = components.classes["@mozilla.org/network/io-service;1"]
     io_service = cls.getService(interfaces.nsIIOService)
@@ -261,8 +262,9 @@ class Injector():
         # set up the script element to be injected
         self.script = window.document.createElement('script')
         self.script.type = 'text/javascript'
-        # working around XSS security
-        text = open(self.script_path,'r').read()
+        
+        # work around XSS security
+        text = str(open(self.script_path,'r').read())
         self.script.appendChild( window.document.createTextNode(text) )
         
         # reference to head

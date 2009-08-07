@@ -250,6 +250,8 @@ class Download:
     def _get_file_name(self):
         if self._display_name:
             return self._display_name
+        elif self._source.scheme == 'data':
+            return 'data URI'
         else:
             path = urlparse.urlparse(self._source.spec).path
             location, file_name = os.path.split(path)
@@ -309,6 +311,8 @@ def save_link(url, text, owner_document):
         interfaces.nsIRequest.LOAD_BYPASS_CACHE | \
         interfaces.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS
 
+    # HACK: when we QI for nsIHttpChannel on objects that implement
+    # just nsIChannel, pyxpcom gets confused. see  trac #1029
     if uri.scheme == 'http':
         if _implements_interface(channel, interfaces.nsIHttpChannel):
             channel.referrer = io_service.newURI(owner_document.documentURI,
@@ -318,7 +322,6 @@ def save_link(url, text, owner_document):
     listener = xpcom.server.WrapObject(
             _SaveLinkProgressListener(owner_document),
             interfaces.nsIStreamListener)
-            
     channel.asyncOpen(listener, None)
 
 def _implements_interface(obj, interface):

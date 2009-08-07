@@ -72,7 +72,8 @@ class BookmarkletStore(gobject.GObject):
     def get(self, name):
         return self._config.get(name, 'url')
     
-    def add(self, name, url):        
+    def add(self, name, url):
+        logging.debug('web-activity: Adding bookmarklet')
         if not self._config.has_section(name):
             self._config.add_section(name)
             self._config.set(name, 'url', url) 
