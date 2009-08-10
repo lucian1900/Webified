@@ -196,9 +196,7 @@ class ScriptEditor(Dialog):
     def __file_selected_cb(self, view, file_path):
         self._editor.file_path = self._fileview.get_selected_file()
 
-def add_script(location):
-    '''Inspired by https://developer.mozilla.org/en/nsIWebBrowserPersist'''
-    
+def add_script(location):    
     cls = components.classes[ \
                         '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
     persist = cls.createInstance(interfaces.nsIWebBrowserPersist)
@@ -226,27 +224,7 @@ def script_exists(location):
     script_name = os.path.basename(urlparse(location).path)
     
     return os.path.isfile(os.path.join(SCRIPTS_PATH, script_name))
-
-def save_document(browser):
-    cls = components.classes[ \
-                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
-    persist = cls.createInstance(interfaces.nsIWebBrowserPersist)
-    persist.persistFlags = interfaces.nsIWebBrowserPersist \
-                                     .PERSIST_FLAGS_REPLACE_EXISTING_FILES
-                                     
-    local = components.classes["@mozilla.org/file/local;1"]
-    local_file = local.createInstance(interfaces.nsILocalFile)
-    local_data = local.createInstance(interfaces.nsILocalFile)
     
-    file_path = '/media/desktop/saved/x.html'                         
-    local_file.initWithPath(file_path)
-    
-    data_path = '/media/desktop/saved/x'
-    local_data.initWithPath(data_path)
-    
-
-    persist.saveDocument(browser.dom_window.document,
-                                 local_file, local_data, None, 0, 0)
 
 class Injector():
     _com_interfaces_ = interfaces.nsIDOMEventListener

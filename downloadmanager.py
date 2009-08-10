@@ -382,5 +382,4 @@ class _SaveLinkProgressListener(object):
 
     def onDataAvailable(self, request, context, inputStream, offset, count):
         self._external_listener.onDataAvailable(request, context, inputStream,
-                                                offset, count);
-
+                                                offset, count)

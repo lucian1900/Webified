@@ -476,5 +476,4 @@ class WebToolbar(gtk.Toolbar):
                 self._ssb.install()
                 
     def _save_document_clicked_cb(self, button):
-        import usercode
-        usercode.save_document(self._activity._browser)
+       self._activity.save_document()

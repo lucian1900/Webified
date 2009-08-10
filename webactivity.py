@@ -30,7 +30,8 @@ import shutil
 import sqlite3
 import cjson
 import gconf
-import shutil
+import zipfile
+import tempfile
 
 # HACK: Needed by http://dev.sugarlabs.org/ticket/456
 import gnome
@@ -453,6 +454,21 @@ class WebActivity(activity.Activity):
             else:
                 _logger.error('Open uri-list: Does not support' 
                               'list of multiple uris by now.') 
+        elif self.metadata['mime_type'] == 'application/zip':
+            z = zipfile.ZipFile(file_path, 'r')
+            
+            html = None
+            for i in z.namelist():
+                if i.endswith('.html') or i.endswith('.htm'):
+                    html = i
+                    if i == 'index.html':
+                        break
+            
+            if file_name != None:
+                self._browser.load_uri('jar:file://%!%s' % (file_path, html))
+            else:
+                _logger.error('Open jar file: No html file to be opened')
+            
         else:
             self._browser.load_uri(file_path)
         
@@ -472,6 +488,49 @@ class WebActivity(activity.Activity):
                 f.write(self.model.serialize())
             finally:
                 f.close()
+                
+    def save_document(self):
+        logging.debug('Saving document to %s' % bundle_path)
+        
+        cls = components.classes[ \
+                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
+        persist = cls.createInstance(interfaces.nsIWebBrowserPersist)
+        persist.persistFlags = interfaces.nsIWebBrowserPersist \
+                                         .PERSIST_FLAGS_REPLACE_EXISTING_FILES
+
+        local = components.classes["@mozilla.org/file/local;1"]
+        local_file = local.createInstance(interfaces.nsILocalFile)
+        local_data = local.createInstance(interfaces.nsILocalFile)
+
+        temp_dir = tempfile.mkdtemp()
+
+        local_file.initWithPath(os.path.join(temp_dir, 'index.html'))
+        local_data.initWithPath(os.path.join(temp_dir, 'data'))
+
+        persist.saveDocument(self._browser.dom_window.document,
+                                     local_file, local_data, None, 0, 0)
+
+        bundle_path = os.path.join(temp_dir, 'bundle.jar')
+        bundle = zipfile.ZipFile(bundle_path, 'w')
+        bundle.write(local_file.path)
+        for i in os.listdir(local_data.path):
+            bundle.write(os.path.join(local_data.path, i),
+                         zipfile.ZIP_DEFLATED)
+        bundle.close()
+        
+        jobject = datastore.create()
+        jobject.metadata['title'] = self.title
+        jobject.metadata['mime_type'] = 'application/zip'
+        jobject.metadata['icon-color'] = profile.get_color().to_string()
+        jobject.metadata['activity'] = 'org.laptop.WebActivity'
+        jobject.file_path = bundle_path
+    
+        datastore.write(jobject)
+        
+        activity.show_object_in_journal(jobject.object_id)
+
+        # cleanup
+        shutil.rmtree(temp_dir)
 
     def _link_add_button_cb(self, button):
         _logger.debug('button: Add link: %s.' % self.current)                
