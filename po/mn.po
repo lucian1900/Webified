@@ -1,0 +1,148 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2008-11-08 00:30-0500\n"
+"PO-Revision-Date: 2008-12-29 00:37-0500\n"
+"Last-Translator: Odontsetseg Bat-Erdene <obat-erdene@suffolk.edu>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Pootle 1.1.0rc2\n"
+
+#: activity/activity.info:2 webactivity.py:106
+msgid "Browse"
+msgstr "Интэрнэт"
+
+#: downloadmanager.py:152
+msgid "Download started"
+msgstr "Татаж эхэллээ"
+
+#: downloadmanager.py:153 downloadmanager.py:166
+#, python-format
+msgid "%s"
+msgstr "%s"
+
+#: downloadmanager.py:165
+msgid "Download completed"
+msgstr "Татаж дууслаа"
+
+#: downloadmanager.py:169
+msgid "Show in Journal"
+msgstr "Бүртгэл дээр үзүүлэх"
+
+#: downloadmanager.py:172
+msgid "Ok"
+msgstr "Тийм"
+
+#: downloadmanager.py:178
+#, python-format
+msgid "File %s from %s."
+msgstr "Нийт %s-аас %s файл байна."
+
+#: downloadmanager.py:260
+#, python-format
+msgid ""
+"Downloading %s from \n"
+"%s."
+msgstr "%s-с % нь татаж байна."
+
+#: edittoolbar.py:90
+msgid "Previous"
+msgstr "Өмнөх"
+
+#: edittoolbar.py:97
+msgid "Next"
+msgstr "Дараах"
+
+#: linkbutton.py:94
+msgid "Remove"
+msgstr "Устгах"
+
+#: palettes.py:95
+msgid "Follow link"
+msgstr "Холбоог дагах"
+
+#: palettes.py:100 palettes.py:157
+msgid "Copy"
+msgstr "Хуулах"
+
+#: palettes.py:108
+msgid "Download link"
+msgstr "Холбоос татаж авах"
+
+#: palettes.py:165
+msgid "Download image"
+msgstr "Зураг татаж авах"
+
+#: viewtoolbar.py:34
+msgid "Zoom out"
+msgstr "Холдуулах"
+
+#: viewtoolbar.py:40
+msgid "Zoom in"
+msgstr "Ойртуулах"
+
+#: viewtoolbar.py:51
+msgid "Fullscreen"
+msgstr "Бүтэц дэлгэц"
+
+#: viewtoolbar.py:87
+msgid "Show Tray"
+msgstr "Туслах мөрийг харуулах"
+
+#: viewtoolbar.py:91
+msgid "Hide Tray"
+msgstr "Туслах мөрийг нуух"
+
+#: webactivity.py:102
+msgid "Edit"
+msgstr "Засварлах"
+
+#: webactivity.py:114
+msgid "View"
+msgstr "Харагдац"
+
+#: webactivity.py:132 webactivity.py:133
+msgid "blank"
+msgstr "хоосон"
+
+#: webactivity.py:444
+msgid "Download in progress"
+msgstr "Татаж байна..."
+
+#: webactivity.py:445
+msgid "Stopping now will cancel your download"
+msgstr "Программыг зогсоовол татаж байгаа юмнууд арилна"
+
+#: webactivity.py:447
+msgid "Cancel"
+msgstr "Болих"
+
+#: webactivity.py:449 webtoolbar.py:352
+msgid "Stop"
+msgstr "Зогсоох"
+
+#: webtoolbar.py:231
+msgid "Back"
+msgstr "Буцах"
+
+#: webtoolbar.py:238
+msgid "Forward"
+msgstr "Урагшлах"
+
+#: webtoolbar.py:261
+msgid "Bookmark"
+msgstr "Хуудасны хаягийг хадгал"
+
+#: webtoolbar.py:355
+msgid "Reload"
+msgstr "Дахин дууд"
+
+#~ msgid "Source"
+#~ msgstr "Эх үүсвэр"

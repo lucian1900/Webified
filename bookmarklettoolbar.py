@@ -38,7 +38,7 @@ class BookmarkletButton(ToolButton):
     
         # set up the button
         ToolButton.__init__(self, 'bookmarklet')
-        self.connect('clicked', self._clicked_cb)
+        self.connect('clicked', self.__clicked_cb)
         toolbar.insert(self, -1)
         
         # and its palette
@@ -46,7 +46,7 @@ class BookmarkletButton(ToolButton):
         self.set_palette(palette)
         
         menu_item = gtk.MenuItem(_('Remove'))
-        menu_item.connect('activate', self._remove_cb)
+        menu_item.connect('activate', self.__remove_cb)
         palette.menu.append(menu_item)
         menu_item.show()
         
@@ -60,10 +60,10 @@ class BookmarkletButton(ToolButton):
         gobject.timeout_add(500, self.set_icon, 'bookmarklet-inverted')
         gobject.timeout_add(800, self.set_icon, 'bookmarklet')
                     
-    def _clicked_cb(self, button):
+    def __clicked_cb(self, button):
         self._browser.load_uri(self._uri)
 
-    def _remove_cb(self, widget):
+    def __remove_cb(self, widget):
         bookmarklets.get_store().remove(self._name)
         self.destroy()
         

@@ -1,0 +1,149 @@
+# SOME DESCRIPTIVE TITLE.
+# Copyright (C) YEAR THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+# FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2008-06-14 00:30-0400\n"
+"PO-Revision-Date: 2008-07-31 12:25+0200\n"
+"Last-Translator: GASHAYIJA Guillaume <gashayija2002@yahoo.com>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"X-Generator: Translate Toolkit 1.0.1\n"
+
+#: activity/activity.info:2
+#: webactivity.py:113
+msgid "Browse"
+msgstr "Shakisha"
+
+#: browser.py:149
+msgid "Source"
+msgstr "Isooko"
+
+#: downloadmanager.py:141
+msgid "Download started"
+msgstr "gushyira kuri mudasobwa biratangiye"
+
+#: downloadmanager.py:143
+#: downloadmanager.py:157
+#, python-format
+msgid "%s"
+msgstr "%s"
+
+#: downloadmanager.py:155
+msgid "Download completed"
+msgstr "gushyira kuri mudasobwa birarangiye"
+
+#: downloadmanager.py:160
+msgid "Show in Journal"
+msgstr "Erekana mu Kinyamakuru"
+
+#: downloadmanager.py:163
+msgid "Ok"
+msgstr "Nibyo"
+
+#: downloadmanager.py:169
+#, python-format
+msgid "File %s from %s."
+msgstr "Ububiko %s Kuva %s."
+
+#: downloadmanager.py:245
+#, python-format
+msgid ""
+"Downloading %s from \n"
+"%s."
+msgstr ""
+"Gushyira kuri mudasobwa %s kuva\n"
+"%s."
+
+#: edittoolbar.py:94
+msgid "Previous"
+msgstr "ibibanziriza"
+
+#: edittoolbar.py:101
+msgid "Next"
+msgstr "Ibikurikira"
+
+#: linkbutton.py:94
+msgid "Remove"
+msgstr "Kuraho"
+
+#: palettes.py:89
+msgid "Follow link"
+msgstr "Kurikira Umurongo ufite aho ukugeza"
+
+#: palettes.py:94
+#: palettes.py:142
+msgid "Copy"
+msgstr "Andukura"
+
+#: viewtoolbar.py:34
+msgid "Zoom out"
+msgstr "Uburyo bwo kugabanya ingano y`ibintu"
+
+#: viewtoolbar.py:40
+msgid "Zoom in"
+msgstr "Uburyo bwo kongera ingano y`ibintu"
+
+#: viewtoolbar.py:51
+msgid "Fullscreen"
+msgstr "Ekara yose"
+
+#: viewtoolbar.py:87
+msgid "Show Tray"
+msgstr "erekana Tray"
+
+#: viewtoolbar.py:91
+msgid "Hide Tray"
+msgstr "Hisha Tray"
+
+#: webactivity.py:109
+msgid "Edit"
+msgstr "Hindura"
+
+#: webactivity.py:121
+msgid "View"
+msgstr "Kureba"
+
+#: webactivity.py:140
+#: webactivity.py:141
+msgid "blank"
+msgstr "Ahatanditseho"
+
+#: webactivity.py:463
+msgid "Download in progress"
+msgstr "gushyira kuri mudasobwa briho birakorwa"
+
+#: webactivity.py:464
+msgid "Stopping now will cancel your download"
+msgstr "nubihagarika nonaha uratuma gushyira kuri mudasobwa bidakunda"
+
+#: webactivity.py:466
+msgid "Cancel"
+msgstr "Kuraho"
+
+#: webactivity.py:468
+#: webtoolbar.py:334
+msgid "Stop"
+msgstr "Hagarika"
+
+#: webtoolbar.py:212
+msgid "Back"
+msgstr "Inyuma"
+
+#: webtoolbar.py:219
+msgid "Forward"
+msgstr "Imbere"
+
+#: webtoolbar.py:242
+msgid "Bookmark"
+msgstr "Ububiko"
+
+#: webtoolbar.py:337
+msgid "Reload"
+msgstr "Kongera gushakisha"
+

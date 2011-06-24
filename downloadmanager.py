@@ -250,6 +250,8 @@ class Download:
     def _get_file_name(self):
         if self._display_name:
             return self._display_name
+        elif self._source.scheme == 'data':
+            return 'data URI'
         else:
             path = urlparse.urlparse(self._source.spec).path
             location, file_name = os.path.split(path)
@@ -299,7 +301,7 @@ def save_link(url, text, owner_document):
     io_service = cls.getService(interfaces.nsIIOService)
     uri = io_service.newURI(url, None, None)
     channel = io_service.newChannelFromURI(uri)
-
+   
     auth_prompt_callback = xpcom.server.WrapObject(
             _AuthPromptCallback(owner_document.defaultView),
             interfaces.nsIInterfaceRequestor)
@@ -309,9 +311,12 @@ def save_link(url, text, owner_document):
         interfaces.nsIRequest.LOAD_BYPASS_CACHE | \
         interfaces.nsIChannel.LOAD_CALL_CONTENT_SNIFFERS
 
-    if _implements_interface(channel, interfaces.nsIHttpChannel):
-        channel.referrer = io_service.newURI(owner_document.documentURI, None,
-                                             None)
+    # HACK: when we QI for nsIHttpChannel on objects that implement
+    # just nsIChannel, pyxpcom gets confused. see  trac #1029
+    if uri.scheme == 'http':
+        if _implements_interface(channel, interfaces.nsIHttpChannel):
+            channel.referrer = io_service.newURI(owner_document.documentURI,
+                                                 None, None)
 
     # kick off the channel with our proxy object as the listener
     listener = xpcom.server.WrapObject(
@@ -324,6 +329,7 @@ def _implements_interface(obj, interface):
         obj.QueryInterface(interface)
         return True
     except xpcom.Exception, e:
+        logging.debug('***** %s' % e.errno)
         if e.errno == NS_NOINTERFACE:
             return False
         else:
@@ -361,7 +367,8 @@ class _SaveLinkProgressListener(object):
 
         cls = components.classes[
                 "@mozilla.org/uriloader/external-helper-app-service;1"]
-        external_helper = cls.getService(interfaces.nsIExternalHelperAppService)
+        external_helper = cls.getService(
+                                interfaces.nsIExternalHelperAppService)
 
         channel = request.QueryInterface(interfaces.nsIChannel)
 
@@ -375,5 +382,4 @@ class _SaveLinkProgressListener(object):
 
     def onDataAvailable(self, request, context, inputStream, offset, count):
         self._external_listener.onDataAvailable(request, context, inputStream,
-                                                offset, count);
-
+                                                offset, count)

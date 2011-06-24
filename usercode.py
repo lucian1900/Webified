@@ -16,6 +16,7 @@
 
 import os
 import logging
+from urlparse import urlparse
 from gettext import gettext as _
 
 import gobject
@@ -24,227 +25,260 @@ import pango
 import gtksourceview2
 
 import xpcom
+from xpcom import components
 from xpcom.components import interfaces
 
 from sugar.activity import activity
 from sugar.graphics import style
 from sugar.graphics.icon import Icon
 
+import viewsource
 
-class SourceEditor(gtk.ScrolledWindow):
-    '''TextView-like widget with syntax coloring and scroll bars
-    
-    Much of the initialisation code if from Pippy'''
-    
-    __gtype_name__ = 'SugarSourceEditor'
-    
-    def __init__(self, mime_type='text/plain', width=None, height=None):
-        gtk.ScrolledWindow.__init__(self)
-        self.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-         
-        self.mime_type = mime_type
+
+SCRIPTS_PATH = os.path.join(activity.get_activity_root(),
+                            'data/userscripts')
+STYLE_PATH = os.path.join(activity.get_activity_root(),
+                          'data/style.user.css')
+                          
+# make sure the userscript dir exists
+if not os.path.isdir(SCRIPTS_PATH):
+    os.mkdir(SCRIPTS_PATH)
+# make sure userstyle sheet exists
+open(STYLE_PATH, 'w').close()
+
+class Dialog(gtk.Window):
+    def __init__(self, width=None, height=None):        
         self.width = width or int(gtk.gdk.screen_width()/2)
         self.height = height or int(gtk.gdk.screen_height()/1.5)
-        
-        self._buffer = gtksourceview2.Buffer()
-        lang_manager = gtksourceview2.language_manager_get_default()
-        if hasattr(lang_manager, 'list_languages'):
-            langs = lang_manager.list_languages()
-        else:
-            lang_ids = lang_manager.get_language_ids()
-            langs = [lang_manager.get_language(lang_id) 
-                                        for lang_id in lang_ids]
-        for lang in langs:
-            for m in lang.get_mime_types():
-                if m == self.mime_type:
-                    self._buffer.set_language(lang)
 
-        if hasattr(self._buffer, 'set_highlight'):
-            self._buffer.set_highlight(True)
-        else:
-            self._buffer.set_highlight_syntax(True)
-        
-        # editor view
-        self._view = gtksourceview2.View(self._buffer)
-        self._view.set_size_request(self.width, self.height)
-        self._view.set_editable(True)
-        self._view.set_cursor_visible(True)
-        self._view.set_show_line_numbers(True)
-        self._view.set_wrap_mode(gtk.WRAP_CHAR)
-        self._view.set_auto_indent(True)
-        self._view.modify_font(pango.FontDescription("Monospace " +
-                              str(style.FONT_SIZE)))
-
-        self.add(self._view)
-        self.show_all()
-
-    def get_text(self):
-        end = self._buffer.get_end_iter()
-        start = self._buffer.get_start_iter()
-        return self._buffer.get_text(start, end)
-        
-    def set_text(self, text):
-        self._buffer.set_text(text)
-        
-    text = property(get_text, set_text)
-
-class TextEditor(gtk.Window):
-    def __init__(self, mime_type='text/html', width=None, height=None):
         gtk.Window.__init__(self)
         self.set_type_hint(gtk.gdk.WINDOW_TYPE_HINT_DIALOG)
+        self.set_default_size(self.width, self.height)
+
+    def show(self):
+        self.show_all()
+        gtk.Window.show(self)
+
+class SourceEditor(viewsource.SourceDisplay):
+    def __init__(self):
+        viewsource.SourceDisplay.__init__(self)
         
-        self.mime_type = mime_type
-        self.width = width or int(gtk.gdk.screen_width()/2)
-        self.height = height or int(gtk.gdk.screen_height()/1.5)
+        self._source_view.set_editable(True)
+        
+    def get_text(self):
+        start = self._buffer.get_start_iter()
+        end = self._buffer.get_end_iter()
+        return self._buffer.get_text(start, end)
+
+    def set_text(self, text):
+        self._buffer.set_text(text)
+
+    text = property(get_text, set_text)
+    
+    def write(self, path=None):
+        open(path or self.file_path, 'w').write(self.text)
+        logging.debug('@@@@@ %s %s %s' % (self.text, path, self.file_path))
+
+class ScriptFileViewer(viewsource.FileViewer):
+    def __init__(self, path):
+        ls = os.listdir(path)
+        initial_filename = ls[0] if len(ls) > 0 else None
+        viewsource.FileViewer.__init__(self, path, initial_filename)
+
+    def get_selected_file(self):
+        selection = self._tree_view.get_selection()
+        model, tree_iter = selection.get_selected()
+        if tree_iter is None:
+            return None
+        else:
+            return model.get_value(tree_iter, 1)
+
+    def remove_file(self, file_path):
+        model = self._tree_view.get_model()
+        for i in model:
+            if i[0] == os.path.basename(file_path):
+                model.remove(model.get_iter(i.path))
+                break
+
+class StyleEditor(Dialog):
+    __gsignals__ = {
+        'userstyle-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                              ([])),
+    }
+    
+    def __init__(self):
+        Dialog.__init__(self)
         
         # layout
         vbox = gtk.VBox()
-        editorbox = gtk.HBox()
-        buttonbox = gtk.HBox()
         
-        # editor buffer
-        self.buffer = gtksourceview2.Buffer()
-        lang_manager = gtksourceview2.language_manager_get_default()
-        if hasattr(lang_manager, 'list_languages'):
-            langs = lang_manager.list_languages()
-        else:
-            lang_ids = lang_manager.get_language_ids()
-            langs = [lang_manager.get_language(lang_id) 
-                                        for lang_id in lang_ids]
-        for lang in langs:
-            for m in lang.get_mime_types():
-                if m == self.mime_type:
-                    self.buffer.set_language(lang)
-
-        if hasattr(self.buffer, 'set_highlight'):
-            self.buffer.set_highlight(True)
-        else:
-            self.buffer.set_highlight_syntax(True)
-
-        # editor view
-        view = gtksourceview2.View(self.buffer)
-        view.set_size_request(self.width, self.height)
-        view.set_editable(True)
-        view.set_cursor_visible(True)
-        view.set_show_line_numbers(True)
-        view.set_wrap_mode(gtk.WRAP_CHAR)
-        view.set_auto_indent(True)
-        view.modify_font(pango.FontDescription("Monospace " +
-                              str(style.FONT_SIZE)))
-
-        codesw = gtk.ScrolledWindow()
-        codesw.set_policy(gtk.POLICY_AUTOMATIC, gtk.POLICY_AUTOMATIC)
-        codesw.add(view)
-        #editorbox.pack_start(codesw)
-        
-        #vbox.pack_start(editorbox)
-        vbox.pack_start(codesw)
+        self._editor = SourceEditor()
+        self._editor.file_path = STYLE_PATH
+        vbox.pack_start(self._editor)
         
         # buttons
+        buttonbox = gtk.HBox()
+        
         self._cancel_button = gtk.Button(label=_('Cancel'))
         self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
-        self._cancel_button.connect('clicked', self._cancel_button_cb)
+        self._cancel_button.connect('clicked', self.__cancel_button_cb)
         buttonbox.pack_start(self._cancel_button)
         
         self._save_button = gtk.Button(label=_('Save'))
         self._save_button.set_image(Icon(icon_name='dialog-ok'))
+        self._save_button.connect('clicked', self.__save_button_cb)
+        buttonbox.pack_start(self._save_button)
+                                   
+        vbox.pack_start(buttonbox, expand=False)
+        
+        self.add(vbox)
+
+    def __save_button_cb(self, button):
+        self._editor.write()
+        self.emit('userstyle-changed')
+        self.destroy()
+        
+    def __cancel_button_cb(self, button):
+        self.destroy()
+
+class ScriptEditor(Dialog):
+    def __init__(self):
+        Dialog.__init__(self)
+                                        
+        # layout
+        hbox = gtk.HBox()
+        
+        self._fileview = ScriptFileViewer(SCRIPTS_PATH)
+        self._fileview.connect('file-selected', self.__file_selected_cb)
+        hbox.pack_start(self._fileview, expand=False)
+        
+        editbox = gtk.VBox()        
+        self._editor = SourceEditor()
+        editbox.pack_start(self._editor)
+              
+        buttonbox = gtk.HBox()
+        
+        self._cancel_button = gtk.Button(label=_('Close'))
+        self._cancel_button.set_image(Icon(icon_name='dialog-cancel'))
+        self._cancel_button.connect('clicked', self.__cancel_button_cb)
+        buttonbox.pack_start(self._cancel_button)
+        
+        self._delete_button = gtk.Button(label=_('Delete'))
+        self._delete_button.set_image(Icon(icon_name='stock_delete'))
+        self._delete_button.connect('clicked', self.__delete_button_cb)
+        buttonbox.pack_start(self._delete_button)
+        
+        self._save_button = gtk.Button(label=_('Save'))
+        self._save_button.set_image(Icon(icon_name='dialog-ok'))
+        self._save_button.connect('clicked', self.__save_button_cb)
         buttonbox.pack_start(self._save_button)
         
-        self._apply_button = gtk.Button(label=_('Apply'))
-        self._apply_button.set_image(Icon(icon_name='dialog-ok'))
-        buttonbox.pack_start(self._apply_button)
+        editbox.pack_start(buttonbox, expand=False)
+        hbox.pack_start(editbox)
         
-        vbox.pack_start(buttonbox)
-        self.add(vbox)
+        self.add(hbox)
         
-    def _cancel_button_cb(self, button):
-        self.destroy()
+        self.__file_selected_cb(self._fileview, 
+                               self._fileview._initial_filename)
     
-    def show(self):
-        self.show_all()
-        gtk.Window.show(self)
+    def __save_button_cb(self, button):
+        self._editor.write()
         
-    def get_text(self):
-        end = self.buffer.get_end_iter()
-        start = self.buffer.get_start_iter()
-        return self.buffer.get_text(start, end)
+    def __delete_button_cb(self, button):
+        file_path = self._fileview.get_selected_file()
         
-    def set_text(self, text):
-        self.buffer.set_text(text)
+        self._fileview.remove_file(file_path)
+        os.remove(file_path)
         
-    text = property(get_text, set_text)
+    def __cancel_button_cb(self, button):
+        self.destroy()
+        
+    def __file_selected_cb(self, view, file_path):
+        self._editor.file_path = self._fileview.get_selected_file()
 
+def add_script(location):    
+    cls = components.classes[ \
+                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
+    persist = cls.createInstance(interfaces.nsIWebBrowserPersist)
+    persist.persistFlags = interfaces.nsIWebBrowserPersist \
+                                     .PERSIST_FLAGS_REPLACE_EXISTING_FILES
 
-class StyleEditor(TextEditor):
-    __gsignals__ = {
-        'userstyle-changed': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                             ([])),
-    }
+    cls = components.classes["@mozilla.org/network/io-service;1"]
+    uri = cls.getService(interfaces.nsIIOService).newURI(location, None, None)
     
-    def __init__(self):
-        TextEditor.__init__(self, mime_type='text/css')
+    cls = components.classes["@mozilla.org/file/local;1"]
+    local_file = cls.createInstance(interfaces.nsILocalFile)
+    
+    file_name = os.path.basename(uri.path)
+    file_path = os.path.join(SCRIPTS_PATH, file_name)
+    local_file.initWithPath(file_path)
+    if not local_file.exists():
+        local_file.create(0x00, 0644)
 
-        self.css_path = os.path.join(activity.get_activity_root(),
-                                     'data/style.user.css')
-                                     
-        self._save_button.connect('clicked', self._save_button_cb)
-        self._apply_button.connect('clicked', self._apply_button_cb)
-        
-        if os.path.isfile(self.css_path):
-            f = open(self.css_path, 'r')
-            self.text = f.read()
-            f.close()
-        
-    def _apply_button_cb(self, button):
-        f = open(self.css_path, 'w')
-        f.write(self.text)
-        f.close()
-        
-        self.emit('userstyle-changed')
-        
-    def _save_button_cb(self, button):
-        self._apply_button_cb(button)
-        
-        self.destroy()
+    logging.debug('Saving userscript %s -> %s' % \
+                            (uri.spec, file_path))
+    
+    persist.saveURI(uri, None, None, None, None, local_file)
 
-# TODO support multiple userscripts
-class ScriptEditor(TextEditor):
-    __gsignals__ = {
-        'inject-script': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                             ([str])),
-    }
+def script_exists(location):
+    script_name = os.path.basename(urlparse(location).path)
+    
+    return os.path.isfile(os.path.join(SCRIPTS_PATH, script_name))
+    
 
-    def __init__(self):
-        TextEditor.__init__(self, mime_type='text/javascript')
+class Injector():
+    _com_interfaces_ = interfaces.nsIDOMEventListener
+    
+    def __init__(self, script_path):
+        self.script_path = script_path
+             
+        self._wrapped = xpcom.server.WrapObject(self,
+                                                interfaces.nsIDOMEventListener)
+    
+    def handleEvent(self, event):
+        self.head.appendChild(self.script)
+    
+    def attach_to(self, window):
+        # set up the script element to be injected
+        self.script = window.document.createElement('script')
+        self.script.type = 'text/javascript'
         
-        self.script_path = os.path.join(activity.get_activity_root(),
-                                        'data/script.user.js')
-                                        
-        self._save_button.connect('clicked', self._save_button_cb)
+        # work around XSS security
+        text = str(open(self.script_path,'r').read())
+        self.script.appendChild( window.document.createTextNode(text) )
         
-    def _save_button_cb(self, button):
-        self.emit('inject-script', self.text)
+        # reference to head
+        self.head = window.document.getElementsByTagName('head').item(0)
         
-        self.destroy()
+        # actual attaching
+        window.addEventListener('load', self._wrapped, False)
         
+    
 class ScriptListener(gobject.GObject):
     _com_interfaces_ = interfaces.nsIWebProgressListener
 
     __gsignals__ = {
         'userscript-found': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
-                             ([])),
+                             ([str])),
+        'userscript-inject': (gobject.SIGNAL_RUN_FIRST, gobject.TYPE_NONE,
+                             ([str])),
     }
 
     def __init__(self):
         gobject.GObject.__init__(self)
 
-        self._wrapped_self = xpcom.server.WrapObject( \
+        self._wrapped = xpcom.server.WrapObject( \
                 self, interfaces.nsIWebProgressListener)
-
+    
     def onLocationChange(self, webProgress, request, location):
         if location.spec.endswith('.user.js'):
-            self.emit('userscript-found')
+            self.emit('userscript-found', location.spec)
+        else:
+            # TODO load scripts according to domain regex
+            for i in os.listdir(SCRIPTS_PATH):                
+                script_path = os.path.join(SCRIPTS_PATH, i)
+                self.emit('userscript-inject', script_path)
 
     def setup(self, browser):
-        browser.web_progress.addProgressListener(self._wrapped_self, 
+        browser.web_progress.addProgressListener(self._wrapped, 
                                 interfaces.nsIWebProgress.NOTIFY_LOCATION)

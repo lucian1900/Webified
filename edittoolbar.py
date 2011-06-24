@@ -103,7 +103,7 @@ class EditToolbar(activity.EditToolbar):
         self._next.show()
         
         separator = gtk.SeparatorToolItem()
-        separator.set_draw(False)
+        separator.set_draw(True)
         separator.set_expand(True)
         self.insert(separator, -1)
         separator.show()
@@ -121,34 +121,16 @@ class EditToolbar(activity.EditToolbar):
         self.edit_userscripts.show()
 
     def __edit_userstyle_cb(self, button):
-        #editor = usercode.StyleEditor()
-        #editor.connect('userstyle-changed', self.__update_userstyle_cb)
-        #editor.show()
-        
-        editor = usercode.SourceEditor(mime_type='text/css')
-        w = gtk.Window()
-        w.add(editor)
-        w.show_all()
-        w.show()
+        editor = usercode.StyleEditor()
+        editor.connect('userstyle-changed', self.__update_userstyle_cb)
+        editor.show()
 
     def __update_userstyle_cb(self, editor):
         self._browser.update_userstyle()
         
     def __edit_userscripts_cb(self, button):
         editor = usercode.ScriptEditor()
-        editor.connect('inject-script', self.__inject_script_cb)
         editor.show()
-        
-    def __inject_script_cb(self, editor, text):
-        doc = self._browser.dom_window.document
-        
-        head = doc.getElementsByTagName('head').item(0)
-        
-        script = doc.createElement('script')
-        script.type = 'text/javascript'
-        script.appendChild(doc.createTextNode(text))
-        
-        head.appendChild(script)
 
     def __undo_cb(self, button):
         command_manager = self._get_command_manager()

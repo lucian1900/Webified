@@ -14,45 +14,29 @@
 # along with this program; if not, write to the Free Software
 # Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-import shutil
 import os
+import shutil
 import tempfile
 import zipfile
 import ConfigParser
 import logging
-import functools
+from fnmatch import fnmatch
 
 from sugar.activity import activity
-from sugar.activity import bundlebuilder
-from sugar.bundle.activitybundle import ActivityBundle
+from sugar.bundle import activitybundle
 from sugar.datastore import datastore
 from sugar import profile
 
 DOMAIN_PREFIX = 'org.sugarlabs.ssb'
 
+IGNORE_DIRS = ['dist', '.git']
+IGNORE_FILES = ['.gitignore', 'MANIFEST', '*.pyc', '*~', '*.bak', 
+                'pseudo.po', '.DS_STORE']
+
 def get_is_ssb(activity):
     '''determine if the activity is an SSB'''
     return activity.get_bundle_id().startswith(DOMAIN_PREFIX)
-
-# freeze some arguments, equivalent to def list_files(path): ...
-list_files = functools.partial(bundlebuilder.list_files,
-                ignore_dirs=bundlebuilder.IGNORE_DIRS, 
-                ignore_files=bundlebuilder.IGNORE_FILES.append('.DS_STORE'))
-
-def remove_paths(paths, root=None):
-    '''remove all paths in the list, fail silently'''
-    if root is not None:
-        paths = [os.path.join(root, i) for i in paths]
     
-    for path in paths:
-        try:
-            if os.path.isdir(path):
-                shutil.rmtree(path)
-            else:
-                os.remove(path)
-        except OSError:
-            logging.warning('failed to remove: ' + path)
-
 def copy_profile():
     '''get the data from the bundle and into the profile'''
     ssb_data_path = os.path.join(activity.get_bundle_path(), 'data/ssb_data')
@@ -68,6 +52,42 @@ def copy_profile():
                     shutil.copytree(src, dst)
                 else: # is there a better way?
                     shutil.copy(src, dst)
+
+def list_files(base_dir, ignore_dirs=None, ignore_files=None):
+    '''from bundlebuilder.py'''
+    result = []
+
+    base_dir = os.path.abspath(base_dir)
+
+    for root, dirs, files in os.walk(base_dir):
+        if ignore_files:
+            for pattern in ignore_files:
+                files = [f for f in files if not fnmatch(f, pattern)]
+
+        rel_path = root[len(base_dir) + 1:]
+        for f in files:
+            result.append(os.path.join(rel_path, f))
+
+        if ignore_dirs and root == base_dir:
+            for ignore in ignore_dirs:
+                if ignore in dirs:
+                    dirs.remove(ignore)
+
+    return result
+
+def remove_paths(paths, root=None):
+    '''remove all paths in the list, fail silently'''
+    if root is not None:
+        paths = [os.path.join(root, i) for i in paths]
+    
+    for path in paths:
+        try:
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
+        except OSError:
+            logging.warning('failed to remove: ' + path)
 
 class SSBCreator(object):
     def __init__(self, title, uri):
@@ -126,13 +146,13 @@ class SSBCreator(object):
         # copy profile
         ssb_data_path = os.path.join(self.ssb_path, 'data/ssb_data')
         shutil.copytree(self.data_path, ssb_data_path)
-                      
+        
         # delete undesirable things from the profile
-        remove_paths(['Cache', 'cookies.sqlite'],
+        remove_paths(['Cache', 'cookies.sqlite', 'Google Gears for Firefox'],
                      root=os.path.join(ssb_data_path, 'gecko'))
 
         # create MANIFEST
-        files = list_files(self.ssb_path)
+        files = list_files(self.ssb_path, IGNORE_DIRS, IGNORE_FILES)
         f = open(os.path.join(self.ssb_path, 'MANIFEST'), 'w')
         for i in files:
             f.write(i+'\n')
@@ -153,7 +173,7 @@ class SSBCreator(object):
         
     def install(self):
         '''install the generated .xo bundle'''
-        bundle = ActivityBundle(self.xo_path)
+        bundle = activitybundle.ActivityBundle(self.xo_path)
         bundle.install()
         
     def show_in_journal(self):

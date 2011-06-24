@@ -162,8 +162,9 @@ class Browser(WebView):
                 interfaces.nsIStyleSheetService.USER_SHEET):
             self.style_sheet_service.unregisterSheet(self.user_sheet_uri,
                     interfaces.nsIStyleSheetService.USER_SHEET)
-            self.style_sheet_service.loadAndRegisterSheet(self.user_sheet_uri,
-                    interfaces.nsIStyleSheetService.USER_SHEET)
+    
+        self.style_sheet_service.loadAndRegisterSheet(self.user_sheet_uri,
+                interfaces.nsIStyleSheetService.USER_SHEET)
 
     def get_source(self, async_cb, async_err_cb):
         cls = components.classes[ \

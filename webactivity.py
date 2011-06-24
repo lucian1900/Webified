@@ -30,7 +30,8 @@ import shutil
 import sqlite3
 import cjson
 import gconf
-import shutil
+import zipfile
+import tempfile
 
 # HACK: Needed by http://dev.sugarlabs.org/ticket/456
 import gnome
@@ -134,6 +135,7 @@ hulahop.set_app_version(os.environ['SUGAR_BUNDLE_VERSION'])
 hulahop.startup(_profile_path)
 
 from xpcom import components
+from xpcom.components import interfaces
 
 def _set_accept_languages():
     ''' Set intl.accept_languages based on the locale
@@ -165,6 +167,8 @@ import downloadmanager
 import globalhistory
 import filepicker
 import bookmarklets
+import usercode
+import viewsource
 
 _LIBRARY_PATH = '/usr/share/library-common/index.html'
 
@@ -200,7 +204,7 @@ class WebActivity(activity.Activity):
         _set_accept_languages()
         _seed_xs_cookie()
         _set_dbus_globals(self.get_bundle_id())        
-                
+                        
         # don't pick up the sugar theme - use the native mozilla one instead
         cls = components.classes['@mozilla.org/preferences-service;1']
         pref_service = cls.getService(components.interfaces.nsIPrefService)
@@ -261,11 +265,14 @@ class WebActivity(activity.Activity):
             f = open(os.path.join(activity.get_bundle_path(),
                                   'data/homepage'))
             self.homepage = f.read()
-            f.close()            
+            f.close()
             
         # enable userscript saving
         self._browser.userscript.connect('userscript-found',
-                                        self._userscript_found_cb)    
+                                         self._userscript_found_cb)    
+        # enable userscript injecting
+        self._browser.userscript.connect('userscript-inject',
+                                         self._userscript_inject_cb)
 
         if handle.uri:
             self._browser.load_uri(handle.uri)        
@@ -407,7 +414,7 @@ class WebActivity(activity.Activity):
             default_page = os.path.join(activity.get_bundle_path(), 
                                         "data/index.html")
             self._browser.load_uri(default_page)
-
+            
     def _session_history_changed_cb(self, session_history, link):
         _logger.debug('NewPage: %s.' %link)
         self.current = link
@@ -447,6 +454,21 @@ class WebActivity(activity.Activity):
             else:
                 _logger.error('Open uri-list: Does not support' 
                               'list of multiple uris by now.') 
+        elif self.metadata['mime_type'] == 'application/zip':
+            z = zipfile.ZipFile(file_path, 'r')
+            
+            html = None
+            for i in z.namelist():
+                if i.endswith('.html') or i.endswith('.htm'):
+                    html = i
+                    if i == 'index.html':
+                        break
+            
+            if file_name != None:
+                self._browser.load_uri('jar:file://%!%s' % (file_path, html))
+            else:
+                _logger.error('Open jar file: No html file to be opened')
+            
         else:
             self._browser.load_uri(file_path)
         
@@ -466,6 +488,49 @@ class WebActivity(activity.Activity):
                 f.write(self.model.serialize())
             finally:
                 f.close()
+                
+    def save_document(self):
+        logging.debug('Saving document to %s' % bundle_path)
+        
+        cls = components.classes[ \
+                        '@mozilla.org/embedding/browser/nsWebBrowserPersist;1']
+        persist = cls.createInstance(interfaces.nsIWebBrowserPersist)
+        persist.persistFlags = interfaces.nsIWebBrowserPersist \
+                                         .PERSIST_FLAGS_REPLACE_EXISTING_FILES
+
+        local = components.classes["@mozilla.org/file/local;1"]
+        local_file = local.createInstance(interfaces.nsILocalFile)
+        local_data = local.createInstance(interfaces.nsILocalFile)
+
+        temp_dir = tempfile.mkdtemp()
+
+        local_file.initWithPath(os.path.join(temp_dir, 'index.html'))
+        local_data.initWithPath(os.path.join(temp_dir, 'data'))
+
+        persist.saveDocument(self._browser.dom_window.document,
+                                     local_file, local_data, None, 0, 0)
+
+        bundle_path = os.path.join(temp_dir, 'bundle.jar')
+        bundle = zipfile.ZipFile(bundle_path, 'w')
+        bundle.write(local_file.path)
+        for i in os.listdir(local_data.path):
+            bundle.write(os.path.join(local_data.path, i),
+                         zipfile.ZIP_DEFLATED)
+        bundle.close()
+        
+        jobject = datastore.create()
+        jobject.metadata['title'] = self.title
+        jobject.metadata['mime_type'] = 'application/zip'
+        jobject.metadata['icon-color'] = profile.get_color().to_string()
+        jobject.metadata['activity'] = 'org.laptop.WebActivity'
+        jobject.file_path = bundle_path
+    
+        datastore.write(jobject)
+        
+        activity.show_object_in_journal(jobject.object_id)
+
+        # cleanup
+        shutil.rmtree(temp_dir)
 
     def _link_add_button_cb(self, button):
         _logger.debug('button: Add link: %s.' % self.current)                
@@ -524,7 +589,7 @@ class WebActivity(activity.Activity):
         alert.props.msg = _('"%s" already exists. Overwrite?') % name
         alert.connect('response', self._overwrite_bookmarklet_response_cb)
         
-        # send the arguments through the alert
+        # send the arguments through the alert object
         alert._bm = (name, url)
         
         self.add_alert(alert)
@@ -532,24 +597,36 @@ class WebActivity(activity.Activity):
     def _overwrite_bookmarklet_response_cb(self, alert, response_id):
         self.remove_alert(alert)
         
-        name, url = alert._bm
+        name, url = alert._bm # unpack the argument
         if response_id is gtk.RESPONSE_OK:
             self._bm_store.remove(name)
             self._bm_store.add(name, url)
             
-    def _userscript_found_cb(self, listener):
+    def _userscript_found_cb(self, listener, location):
+        '''Ask user whether to install the userscript'''
         alert = ConfirmationAlert()
         alert.props.title = _('Add userscript')
-        alert.props.msg = _('Do you want to add this userscript?')
+        if usercode.script_exists(location):
+            alert.props.msg = _('Userscript already exists. Overwrite?') 
+        else:
+            alert.props.msg = _('Do you want to add this userscript?')    
         alert.connect('response', self._userscript_found_response_cb)
+                
+        # send the argument through the alert object
+        alert._location = location
+        
         self.add_alert(alert)
         
     def _userscript_found_response_cb(self, alert, response_id):
         self.remove_alert(alert)
         
         if response_id is gtk.RESPONSE_OK:
-            pass
-
+            usercode.add_script(alert._location)
+            
+    def _userscript_inject_cb(self, listener, script_path):
+        logging.debug('Injecting %s' % script_path)    
+        usercode.Injector(script_path).attach_to(self._browser.dom_window)
+        
     def _add_link(self):
         ''' take screenshot and add link info to the model '''
         for link in self.model.data['shared_links']:
@@ -649,6 +726,15 @@ class WebActivity(activity.Activity):
             logging.debug('Stop downloads and quit')
             downloadmanager.remove_all_downloads()
             self.close(force=True)
+
+    #def handle_view_source(self):     
+    #    logging.debug('##### local view source') 
+    #    logging.debug('@@@@@ %s' % usercode.STYLE_PATH)  
+    #    view_source = viewsource.ViewSource(self.get_xid(),                 
+    #                                        self.get_bundle_path(),
+    #                                        usercode.STYLE_PATH,
+    #                                        self.get_title())
+    #    view_source.show()
 
     def get_document_path(self, async_cb, async_err_cb):
         self._browser.get_source(async_cb, async_err_cb)
